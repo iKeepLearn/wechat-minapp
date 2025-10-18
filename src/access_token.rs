@@ -3,7 +3,7 @@ use chrono::{DateTime, Duration, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
-use tracing::{Level, event, instrument};
+use tracing::{debug, instrument};
 
 #[derive(Clone)]
 pub struct AccessToken {
@@ -74,14 +74,14 @@ pub(crate) async fn get_access_token(
         .send()
         .await?;
 
-    event!(Level::DEBUG, "response: {:#?}", response);
+    debug!("response: {:#?}", response);
 
     if response.status().is_success() {
         let res = response.json::<Response<AccessTokenBuilder>>().await?;
 
         let builder = res.extract()?;
 
-        event!(Level::DEBUG, "access token builder: {:#?}", builder);
+        debug!("access token builder: {:#?}", builder);
 
         Ok(builder)
     } else {
@@ -105,7 +105,7 @@ pub(crate) async fn get_stable_access_token(
     map.insert("secret", secret.to_string());
 
     if let Some(force_refresh) = force_refresh.into() {
-        event!(Level::DEBUG, "force_refresh: {}", force_refresh);
+        debug!("force_refresh: {}", force_refresh);
 
         map.insert("force_refresh", force_refresh.to_string());
     }
@@ -116,14 +116,14 @@ pub(crate) async fn get_stable_access_token(
         .send()
         .await?;
 
-    event!(Level::DEBUG, "response: {:#?}", response);
+    debug!("response: {:#?}", response);
 
     if response.status().is_success() {
         let response = response.json::<Response<AccessTokenBuilder>>().await?;
 
         let builder = response.extract()?;
 
-        event!(Level::DEBUG, "stable access token builder: {:#?}", builder);
+        debug!("stable access token builder: {:#?}", builder);
 
         Ok(builder)
     } else {

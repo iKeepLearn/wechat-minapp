@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
+#[allow(deprecated)]
 use aes::{
     Aes128,
-    cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7,generic_array::GenericArray},
+    cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7, generic_array::GenericArray},
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use cbc::Decryptor;
@@ -11,7 +10,8 @@ use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 use sha2::Sha256;
-use tracing::{Level, event, instrument};
+use std::collections::HashMap;
+use tracing::{debug, instrument};
 
 use crate::{
     Result,
@@ -72,12 +72,12 @@ impl Credential {
     /// ```
     #[instrument(skip(self, encrypted_data, iv))]
     pub fn decrypt(&self, encrypted_data: &str, iv: &str) -> Result<User> {
-        event!(Level::DEBUG, "encrypted_data: {}", encrypted_data);
-        event!(Level::DEBUG, "iv: {}", iv);
+        debug!("encrypted_data: {}", encrypted_data);
+        debug!("iv: {}", iv);
 
         let key = STANDARD.decode(self.session_key.as_bytes())?;
         let iv = STANDARD.decode(iv.as_bytes())?;
-
+        #[allow(deprecated)]
         let decryptor = Aes128CbcDec::new(
             &GenericArray::clone_from_slice(&key),
             &GenericArray::clone_from_slice(&iv),
@@ -89,7 +89,7 @@ impl Credential {
 
         let builder = from_slice::<UserBuilder>(&buffer)?;
 
-        event!(Level::DEBUG, "user builder: {:#?}", builder);
+        debug!("user builder: {:#?}", builder);
 
         Ok(builder.build())
     }
@@ -160,7 +160,7 @@ impl Client {
             .send()
             .await?;
 
-        event!(Level::DEBUG, "response: {:#?}", response);
+        debug!("response: {:#?}", response);
 
         if response.status().is_success() {
             let response = response.json::<Response<()>>().await?;
@@ -194,14 +194,14 @@ impl Client {
             .send()
             .await?;
 
-        event!(Level::DEBUG, "response: {:#?}", response);
+        debug!("response: {:#?}", response);
 
         if response.status().is_success() {
             let response = response.json::<Response<CredentialBuilder>>().await?;
 
             let credential = response.extract()?.build();
 
-            event!(Level::DEBUG, "credential: {:#?}", credential);
+            debug!("credential: {:#?}", credential);
 
             Ok(credential)
         } else {

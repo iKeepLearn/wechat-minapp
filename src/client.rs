@@ -6,7 +6,7 @@ use crate::{
     error::Error::InternalServer,
     response::Response,
 };
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use std::{
     collections::HashMap,
     sync::{
@@ -15,7 +15,7 @@ use std::{
     },
 };
 use tokio::sync::{Notify, RwLock};
-use tracing::{Level, event, instrument};
+use tracing::{debug, instrument};
 
 /// 存储微信小程序的 appid 和 secret
 #[derive(Debug, Clone)]
@@ -87,7 +87,7 @@ impl Client {
     /// ```
     #[instrument(skip(self, code))]
     pub async fn login(&self, code: &str) -> Result<Credential> {
-        event!(Level::DEBUG, "code: {}", code);
+        debug!("code: {}", code);
 
         let mut map: HashMap<&str, &str> = HashMap::new();
 
@@ -104,14 +104,14 @@ impl Client {
             .send()
             .await?;
 
-        event!(Level::DEBUG, "authentication response: {:#?}", response);
+        debug!("authentication response: {:#?}", response);
 
         if response.status().is_success() {
             let response = response.json::<Response<CredentialBuilder>>().await?;
 
             let credential = response.extract()?.build();
 
-            event!(Level::DEBUG, "credential: {:#?}", credential);
+            debug!("credential: {:#?}", credential);
 
             Ok(credential)
         } else {
@@ -133,47 +133,68 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    /// 
+    ///
     pub async fn access_token(&self) -> Result<String> {
-        let guard = self.access_token.read().await;
-        event!(Level::DEBUG, "expired at: {}", guard.expired_at);
-
-        if self.refreshing.load(Ordering::Acquire) {
-            event!(Level::DEBUG, "refreshing");
-
-            self.notify.notified().await;
-        } else {
-            event!(Level::DEBUG, "prepare to fresh");
-
-            self.refreshing.store(true, Ordering::Release);
-
-            drop(guard);
-
-            event!(Level::DEBUG, "write access token guard");
-
-            let mut guard = self.access_token.write().await;
-
-            let builder = get_access_token(
-                self.inner.client.clone(),
-                &self.inner.app_id,
-                &self.inner.secret,
-            )
-            .await?;
-
-            guard.access_token = builder.access_token;
-            guard.expired_at = builder.expired_at;
-
-            self.refreshing.store(false, Ordering::Release);
-
-            self.notify.notify_waiters();
-
-            event!(Level::DEBUG, "fresh access token: {:#?}", guard);
-
-            return Ok(guard.access_token.clone());
+        // 第一次检查：快速路径
+        {
+            let guard = self.access_token.read().await;
+            if !is_token_expired(&guard) {
+                return Ok(guard.access_token.clone());
+            }
         }
-        Ok(guard.access_token.clone())
+
+        // 使用CAS竞争刷新权
+        if self
+            .refreshing
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
+            // 获得刷新权
+            match self.refresh_access_token().await {
+                Ok(token) => {
+                    self.refreshing.store(false, Ordering::Release);
+                    self.notify.notify_waiters();
+                    Ok(token)
+                }
+                Err(e) => {
+                    self.refreshing.store(false, Ordering::Release);
+                    self.notify.notify_waiters();
+                    Err(e)
+                }
+            }
+        } else {
+            // 等待其他线程刷新完成
+            self.notify.notified().await;
+            // 刷新完成后重新读取
+            let guard = self.access_token.read().await;
+            Ok(guard.access_token.clone())
+        }
     }
 
+    async fn refresh_access_token(&self) -> Result<String> {
+        let mut guard = self.access_token.write().await;
+
+        if !is_token_expired(&guard) {
+            debug!("token already refreshed by another thread");
+            return Ok(guard.access_token.clone());
+        }
+
+        debug!("performing network request to refresh token");
+
+        let builder = get_access_token(
+            self.inner.client.clone(),
+            &self.inner.app_id,
+            &self.inner.secret,
+        )
+        .await?;
+
+        guard.access_token = builder.access_token.clone();
+        guard.expired_at = builder.expired_at;
+
+        debug!("fresh access token: {:#?}", guard);
+
+        Ok(guard.access_token.clone())
+    }
 
     /// ```ignore
     /// use wechat_minapp::Client;
@@ -189,49 +210,82 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    /// 
-    /// 
+    ///
+    ///
     pub async fn stable_access_token(
         &self,
         force_refresh: impl Into<Option<bool>> + Clone + Send,
     ) -> Result<String> {
-        let guard = self.access_token.read().await;
-        event!(Level::DEBUG, "expired at: {}", guard.expired_at);
+        // 第一次检查：快速路径
+        {
+            let guard = self.access_token.read().await;
+            if !is_token_expired(&guard) {
+                return Ok(guard.access_token.clone());
+            }
+        }
 
-        if self.refreshing.load(Ordering::Acquire) {
-            event!(Level::DEBUG, "refreshing");
-
-            self.notify.notified().await;
+        // 使用CAS竞争刷新权
+        if self
+            .refreshing
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+        {
+            // 获得刷新权
+            match self.refresh_stable_access_token(force_refresh).await {
+                Ok(token) => {
+                    self.refreshing.store(false, Ordering::Release);
+                    self.notify.notify_waiters();
+                    Ok(token)
+                }
+                Err(e) => {
+                    self.refreshing.store(false, Ordering::Release);
+                    self.notify.notify_waiters();
+                    Err(e)
+                }
+            }
         } else {
-            event!(Level::DEBUG, "prepare to fresh");
+            // 等待其他线程刷新完成
+            self.notify.notified().await;
+            // 刷新完成后重新读取
+            let guard = self.access_token.read().await;
+            Ok(guard.access_token.clone())
+        }
+    }
 
-            self.refreshing.store(true, Ordering::Release);
+    async fn refresh_stable_access_token(
+        &self,
+        force_refresh: impl Into<Option<bool>> + Clone + Send,
+    ) -> Result<String> {
+        // 1. Acquire the write lock. This blocks if another thread won CAS but is refreshing.
+        let mut guard = self.access_token.write().await;
 
-            drop(guard);
-
-            event!(Level::DEBUG, "write access token guard");
-
-            let mut guard = self.access_token.write().await;
-
-            let builder = get_stable_access_token(
-                self.inner.client.clone(),
-                &self.inner.app_id,
-                &self.inner.secret,
-                force_refresh,
-            )
-            .await?;
-
-            guard.access_token = builder.access_token;
-            guard.expired_at = builder.expired_at;
-
-            self.refreshing.store(false, Ordering::Release);
-
-            self.notify.notify_waiters();
-
-            event!(Level::DEBUG, "fresh access token: {:#?}", guard);
-
+        // 2. Double-check expiration under the write lock (CRITICAL)
+        // If another CAS-winner refreshed the token while we were waiting for the write lock,
+        // we return the new token without performing a new network call.
+        if !is_token_expired(&guard) {
+            // Token is now fresh, return it
+            debug!("token already refreshed by another thread");
             return Ok(guard.access_token.clone());
         }
+
+        // 3. Perform the network request since the token is still stale
+        debug!("performing network request to refresh token");
+
+        let builder = get_stable_access_token(
+            self.inner.client.clone(),
+            &self.inner.app_id,
+            &self.inner.secret,
+            force_refresh,
+        )
+        .await?;
+
+        // 4. Update the token
+        guard.access_token = builder.access_token.clone();
+        guard.expired_at = builder.expired_at;
+
+        debug!("fresh access token: {:#?}", guard);
+
+        // Return the newly fetched token (cloned here for consistency)
         Ok(guard.access_token.clone())
     }
 }
@@ -241,4 +295,10 @@ struct ClientInner {
     app_id: String,
     secret: String,
     client: reqwest::Client,
+}
+
+fn is_token_expired(token: &AccessToken) -> bool {
+    // 添加安全边界，提前刷新
+    let now = Utc::now();
+    token.expired_at.signed_duration_since(now) < Duration::minutes(5)
 }

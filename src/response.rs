@@ -1,7 +1,7 @@
 use serde::Deserialize;
-use tracing::{event, Level};
+use tracing::{Level, event};
 
-use crate::{error::ErrorCode, Result};
+use crate::{Result, error::ErrorCode};
 
 /// 微信小程序返回的数据结构
 #[derive(Debug, Deserialize)]

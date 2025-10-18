@@ -5,7 +5,7 @@ use crate::{
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{Level, event};
+use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct QrCode {
@@ -158,9 +158,9 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    /// 
+    ///
     pub async fn qr_code(&self, args: QrCodeArgs) -> Result<QrCode> {
-        event!(Level::DEBUG, "get qr code args {:?}", &args);
+        debug!("get qr code args {:?}", &args);
 
         let mut query = HashMap::new();
         let mut body = HashMap::new();
@@ -202,7 +202,7 @@ impl Client {
             .send()
             .await?;
 
-        event!(Level::DEBUG, "response: {:#?}", response);
+        debug!("response: {:#?}", response);
 
         if response.status().is_success() {
             let response = response.bytes().await?;

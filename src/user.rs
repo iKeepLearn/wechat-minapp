@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use tracing::{Level, event};
+use std::collections::HashMap;
+use tracing::debug;
 
 use crate::{Result, client::Client, constants, error::Error::InternalServer, response::Response};
 
@@ -172,10 +172,9 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    /// 
-  pub  async fn get_contact(&self, code: &str, open_id: Option<&str>) -> Result<Contact> {
-
-        event!(Level::DEBUG, "code: {}, open_id: {:?}", code, open_id);
+    ///
+    pub async fn get_contact(&self, code: &str, open_id: Option<&str>) -> Result<Contact> {
+        debug!("code: {}, open_id: {:?}", code, open_id);
 
         let mut query = HashMap::new();
         let mut body = HashMap::new();
@@ -195,14 +194,14 @@ impl Client {
             .send()
             .await?;
 
-        event!(Level::DEBUG, "response: {:#?}", response);
+        debug!("response: {:#?}", response);
 
         if response.status().is_success() {
             let response = response.json::<Response<ContactBuilder>>().await?;
 
             let builder = response.extract()?;
 
-            event!(Level::DEBUG, "contact builder: {:#?}", builder);
+            debug!("contact builder: {:#?}", builder);
 
             Ok(builder.build())
         } else {
