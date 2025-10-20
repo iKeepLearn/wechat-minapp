@@ -1,43 +1,12 @@
-//! 微信小程序用户信息模块
-//!
-//! 该模块提供了获取和处理微信小程序用户信息的功能，包括用户基本信息和手机号信息。
-//!
-//! # 主要功能
-//!
-//! - 解析用户加密数据（用户基本信息）
-//! - 获取用户手机号信息
-//! - 数据水印验证（确保数据来源可信）
-//!
-//! # 数据安全
-//!
-//! 所有用户数据都包含微信官方的水印信息，用于验证数据的真实性和完整性。
-//! 水印包含 AppID 和时间戳，确保数据来自可信源且未被篡改。
-//!
-//! # 快速开始
-//!
-//! ```no_run
-//! use wechat_minapp::Client;
-//! use wechat_minapp::user::{User, Contact};
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let client = Client::new("app_id", "secret");
-//!
-//! // 解析用户基本信息（需要前端传递加密数据）
-//! // let user_info = client.decode_user_info(encrypted_data, iv, session_key)?;
-//!
-//! // 获取用户手机号
-//! let code = "frontend_phone_code";
-//! let contact = client.get_contact(code, None).await?;
-//! println!("用户手机号: {}", contact.phone_number());
-//! # Ok(())
-//! # }
-//! ```
-
+use super::User;
+use super::credential::Credential;
+use crate::{
+    Result, constants, error::Error::InternalServer, response::Response,
+    user::credential::CredentialBuilder,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::debug;
-
-use crate::{Result, client::Client, constants, error::Error::InternalServer, response::Response};
+use tracing::{debug, instrument};
 
 /// 微信用户基本信息
 ///
@@ -47,16 +16,25 @@ use crate::{Result, client::Client, constants, error::Error::InternalServer, res
 /// # 示例
 ///
 /// ```no_run
-/// use wechat_minapp::user::User;
+/// use wechat_minapp::client::StableTokenClient;
+/// use wechat_minapp::user::{User, Contact};
 ///
-/// # fn process_user(user: User) {
-/// println!("昵称: {}", user.nickname());
-/// println!("性别: {}", user.gender());
-/// println!("地区: {}-{}-{}", user.country(), user.province(), user.city());
-/// println!("头像: {}", user.avatar());
-/// println!("AppID: {}", user.app_id());
-/// println!("时间戳: {}", user.timestamp());
-/// # }
+///  #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let client = StableTokenClient::new("app_id", "secret");
+///     let user = User::new(client);
+///     let code = "0816abc123def456";
+///     let credential = user.login(code).await?;
+///     let info = credential.decrypt(&encrypted_data, &iv)?;
+///     println!("昵称: {}", info.nickname());
+///     println!("性别: {}", info.gender());
+///     println!("地区: {}-{}-{}", info.country(), info.province(), info.city());
+///     println!("头像: {}", info.avatar());
+///     println!("AppID: {}", info.app_id());
+///     println!("时间戳: {}", info.timestamp());
+///     
+///     Ok(())
+/// }
 /// ```
 ///
 /// # 数据来源
@@ -71,7 +49,7 @@ use crate::{Result, client::Client, constants, error::Error::InternalServer, res
 ///
 /// - `gender`: 性别，0-未知，1-男性，2-女性
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct User {
+pub struct UserInfo {
     nickname: String,
     gender: u8,
     country: String,
@@ -81,7 +59,7 @@ pub struct User {
     watermark: Watermark,
 }
 
-impl User {
+impl UserInfo {
     pub fn nickname(&self) -> &str {
         &self.nickname
     }
@@ -130,8 +108,8 @@ pub(crate) struct UserBuilder {
 }
 
 impl UserBuilder {
-    pub(crate) fn build(self) -> User {
-        User {
+    pub(crate) fn build(self) -> UserInfo {
+        UserInfo {
             nickname: self.nickname,
             gender: self.gender,
             country: self.country,
@@ -223,7 +201,80 @@ impl WatermarkBuilder {
     }
 }
 
-impl Client {
+impl User {
+    /// 用户登录凭证校验
+    ///
+    /// 通过微信前端获取的临时登录凭证 code，换取用户的唯一标识 OpenID 和会话密钥。
+    ///
+    /// # 参数
+    ///
+    /// - `code`: 微信前端通过 `wx.login()` 获取的临时登录凭证
+    ///
+    /// # 返回
+    ///
+    /// 成功返回 `Ok(Credential)`，包含用户身份信息
+    ///
+    /// # 错误
+    ///
+    /// - 网络错误
+    /// - 微信 API 返回错误
+    /// - 响应解析错误
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::user::{User, Contact};
+    ///
+    ///  #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let user = User::new(client);
+    ///     let code = "0816abc123def456";
+    ///     let credential = user.login(code).await?;
+    ///     println!("用户OpenID: {}", credential.open_id());
+    ///     println!("会话密钥: {}", credential.session_key());
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # API 文档
+    ///
+    /// [微信官方文档 - code2Session](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html)
+    #[instrument(skip(self, code))]
+    pub async fn login(&self, code: &str) -> Result<Credential> {
+        debug!("code: {}", code);
+
+        let mut map: HashMap<&str, &str> = HashMap::new();
+        let inner = self.client.inner_client();
+        map.insert("appid", &inner.app_id);
+        map.insert("secret", &inner.secret);
+        map.insert("js_code", code);
+        map.insert("grant_type", "authorization_code");
+
+        let response = inner
+            .client
+            .get(constants::AUTHENTICATION_END_POINT)
+            .query(&map)
+            .send()
+            .await?;
+
+        debug!("authentication response: {:#?}", response);
+
+        if response.status().is_success() {
+            let response = response.json::<Response<CredentialBuilder>>().await?;
+
+            let credential = response.extract()?.build();
+
+            debug!("credential: {:#?}", credential);
+
+            Ok(credential)
+        } else {
+            Err(InternalServer(response.text().await?))
+        }
+    }
+
     /// 获取用户手机号信息
     ///
     /// 通过前端获取的临时凭证 code 换取用户的手机号信息。
@@ -246,19 +297,17 @@ impl Client {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::Client;
+    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::user::{User, Contact};
     ///
-    /// #[tokio::main]
+    ///  #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = Client::new("app_id", "secret");
-    ///     
-    ///     // 不提供 OpenID
-    ///     let contact1 = client.get_contact("phone_code_1", None).await?;
-    ///     println!("手机号: {}", contact1.phone_number());
-    ///     
-    ///     // 提供 OpenID 提升安全性
-    ///     let contact2 = client.get_contact("phone_code_2", Some("user_openid")).await?;
-    ///     println!("纯手机号: {}", contact2.pure_phone_number());
+    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let user = User::new(client);
+    ///     let code = "0816abc123def456";
+    ///     let contact = user.get_contact(code, None).await?;
+    ///     let info = credential.decrypt(&encrypted_data, &iv)?;
+    ///     println!("用户手机号: {}", contact.phone_number());
     ///     
     ///     Ok(())
     /// }
@@ -287,16 +336,15 @@ impl Client {
 
         let mut query = HashMap::new();
         let mut body = HashMap::new();
-
-        query.insert("access_token", self.token().await?);
+        let client = &self.client.inner_client().client;
+        query.insert("access_token", self.client.token().await?);
         body.insert("code", code);
 
         if let Some(open_id) = open_id {
             body.insert("openid", open_id);
         }
 
-        let response = self
-            .request()
+        let response = client
             .post(constants::PHONE_END_POINT)
             .query(&query)
             .json(&body)

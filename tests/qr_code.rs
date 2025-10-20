@@ -1,15 +1,17 @@
 use dotenv::dotenv;
 use std::env;
-use wechat_minapp::{Client, MinappEnvVersion, QrCodeArgs, Rgb};
+use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::qr::{MinappEnvVersion, Qr, QrCodeArgs, Rgb};
 
 /// 初始化测试客户端
-fn setup_client() -> Client {
+fn setup_client() -> Qr {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
 
-    Client::new(&app_id, &secret)
+    let client = StableTokenClient::new(&app_id, &secret);
+    Qr::new(client)
 }
 
 #[test]

@@ -1,16 +1,17 @@
 use dotenv::dotenv;
 use std::env;
-use wechat_minapp::Client;
-use wechat_minapp::minapp_security::{Args, Scene};
+use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::minapp_security::{Args, MinappSecurity, Scene};
 
 /// 初始化测试客户端
-fn setup_client() -> Client {
+fn setup_client() -> MinappSecurity {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
 
-    Client::new(&app_id, &secret)
+    let client = StableTokenClient::new(&app_id, &secret);
+    MinappSecurity::new(client)
 }
 
 /// 获取测试用的用户openid

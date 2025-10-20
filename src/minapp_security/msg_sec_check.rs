@@ -21,11 +21,13 @@
 //! # 快速开始
 //!
 //! ```no_run
-//! use wechat_minapp::{Client, minapp_security::{Args, Scene}};
+//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = Client::new("app_id", "secret");
+//!     let client = StableTokenClient::new("app_id", "secret");
+//!     let security = MinappSecurity::new(client);
 //!     
 //!     let args = Args::builder()
 //!         .content("需要检测的文本内容")
@@ -33,7 +35,7 @@
 //!         .openid("user_openid")
 //!         .build()?;
 //!     
-//!     let result = client.msg_sec_check(&args).await?;
+//!     let result = security.msg_sec_check(&args).await?;
 //!     
 //!     if result.is_pass() {
 //!         println!("内容安全，可以发布");
@@ -47,8 +49,8 @@
 //! }
 //! ```
 
-use super::{Label, Suggest};
-use crate::{Result, client::Client, constants, error::Error};
+use super::{Label, MinappSecurity, Suggest};
+use crate::{Result, constants, error::Error};
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -456,7 +458,7 @@ impl MsgSecCheckResult {
     }
 }
 
-impl Client {
+impl MinappSecurity {
     /// 内容安全检测
     ///
     /// 对文本内容进行安全检测，识别违规内容。
@@ -478,19 +480,20 @@ impl Client {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::{Client, minapp_security::{Args, Scene}};
+    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let client = Client::new("app_id", "secret");
-    ///     
+    ///     let security = MinappSecurity::new(client);
     ///     let args = Args::builder()
     ///         .content("需要检测的文本内容")
     ///         .scene(Scene::Comment)
     ///         .openid("user_openid")
     ///         .build()?;
     ///     
-    ///     let result = client.msg_sec_check(&args).await?;
+    ///     let result = security.msg_sec_check(&args).await?;
     ///     
     ///     match (result.is_pass(), result.needs_review(), result.is_risky()) {
     ///         (true, _, _) => println!("内容安全，可以发布"),
@@ -511,7 +514,8 @@ impl Client {
 
         // 验证参数
         args.validate()?;
-        let access_token = self.access_token().await?;
+        let client = &self.client.inner_client().client;
+        let access_token = &self.client.token().await?;
         let mut query = HashMap::new();
         let mut body = HashMap::new();
         let version = args.version.to_string();
@@ -540,8 +544,7 @@ impl Client {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        let response = self
-            .request()
+        let response = client
             .post(constants::MSG_SEC_CHECK_END_POINT)
             .headers(headers)
             .query(&query)

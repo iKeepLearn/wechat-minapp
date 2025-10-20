@@ -11,6 +11,8 @@ use strum::Display;
 
 pub use msg_sec_check::{Args, MsgSecCheckResult, Scene};
 
+use crate::client::Client;
+
 #[derive(Debug, Deserialize_repr, Display, Serialize, PartialEq, Clone)]
 #[repr(i32)]
 pub enum Label {
@@ -125,6 +127,18 @@ impl From<&str> for Suggest {
             "pass" => Suggest::Pass,
             "review" => Suggest::Review,
             _ => Suggest::Review,
+        }
+    }
+}
+
+pub struct MinappSecurity {
+    pub client: Box<dyn Client>,
+}
+
+impl MinappSecurity {
+    pub fn new<T: Client + 'static>(client: T) -> Self {
+        MinappSecurity {
+            client: Box::new(client),
         }
     }
 }

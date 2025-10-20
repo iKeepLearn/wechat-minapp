@@ -1,3 +1,5 @@
+use super::User;
+use super::user_info::{UserBuilder, UserInfo};
 #[allow(deprecated)]
 use aes::{
     Aes128,
@@ -13,14 +15,7 @@ use sha2::Sha256;
 use std::collections::HashMap;
 use tracing::{debug, instrument};
 
-use crate::{
-    Result,
-    client::Client,
-    constants,
-    error::Error::InternalServer,
-    response::Response,
-    user::{User, UserBuilder},
-};
+use crate::{Result, constants, error::Error::InternalServer, response::Response};
 
 type Aes128CbcDec = Decryptor<Aes128>;
 
@@ -47,32 +42,29 @@ impl Credential {
 
     /// 解密用户数据，使用的是 AES-128-CBC 算法，数据采用PKCS#7填充。
     /// https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html
-    /// ```rust
-    /// use wechat_minapp::{Client, Result};
-    /// use serde::Deserialize;
-    /// use crate::{Error, state::AppState};
-    /// use actix_web::{Responder, web};
+    /// ```no_run
+    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::user::{User, Contact};
     ///
-    /// #[derive(Deserialize, Default)]
-    /// pub(crate) struct EncryptedPayload {
-    ///     code: String,
-    ///     encrypted_data: String,
-    ///     iv: String,
-    /// }
-    ///
-    /// pub(crate) async fn decrypt(
-    ///     state: web::Data<AppState>,
-    ///     payload: web::Json<EncryptedPayload>,
-    /// ) -> Result<impl Responder, Error>  {
-    ///     let credential = state.client.login(&payload.code).await?;
-    ///
-    ///     let user = credential.decrypt(&payload.encrypted_data, &payload.iv)?;
-    ///
+    ///  #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let user = User::new(client);
+    ///     let code = "0816abc123def456";
+    ///     let credential = user.login(code).await?;
+    ///     let info = credential.decrypt(&encrypted_data, &iv)?;
+    ///     println!("昵称: {}", info.nickname());
+    ///     println!("性别: {}", info.gender());
+    ///     println!("地区: {}-{}-{}", info.country(), info.province(), info.city());
+    ///     println!("头像: {}", info.avatar());
+    ///     println!("AppID: {}", info.app_id());
+    ///     println!("时间戳: {}", info.timestamp());
+    ///     
     ///     Ok(())
     /// }
     /// ```
     #[instrument(skip(self, encrypted_data, iv))]
-    pub fn decrypt(&self, encrypted_data: &str, iv: &str) -> Result<User> {
+    pub fn decrypt(&self, encrypted_data: &str, iv: &str) -> Result<UserInfo> {
         debug!("encrypted_data: {}", encrypted_data);
         debug!("iv: {}", iv);
 
@@ -138,7 +130,7 @@ impl std::fmt::Debug for CredentialBuilder {
 
 type HmacSha256 = Hmac<Sha256>;
 
-impl Client {
+impl User {
     /// 检查登录态是否过期
     /// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/checkSessionKey.html
     #[instrument(skip(self, session_key, open_id))]
@@ -153,9 +145,8 @@ impl Client {
         map.insert("openid", open_id.to_string());
         map.insert("signature", signature);
         map.insert("sig_method", "hmac_sha256".into());
-
-        let response = self
-            .request()
+        let client = &self.client.inner_client().client;
+        let response = client
             .get(constants::CHECK_SESSION_KEY_END_POINT)
             .query(&map)
             .send()
@@ -182,14 +173,13 @@ impl Client {
         let signature = encode(hasher.into_bytes());
 
         let mut map = HashMap::new();
-
-        map.insert("access_token", self.token().await?);
+        let client = &self.client.inner_client().client;
+        map.insert("access_token", self.client.token().await?);
         map.insert("openid", open_id.to_string());
         map.insert("signature", signature);
         map.insert("sig_method", "hmac_sha256".into());
 
-        let response = self
-            .request()
+        let response = client
             .get(constants::RESET_SESSION_KEY_END_POINT)
             .query(&map)
             .send()

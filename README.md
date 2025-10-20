@@ -8,21 +8,23 @@ A rust sdk for wechat miniprogram server api
 
 首先感谢 headironc 的项目，之所以重新发一包，而不是 pr 是因为我改了很多结构，现在 wechat-minapp 的调用方式出现了很大的不同。
 
+1.x 版本的说明请切换到 v1 分支查看
+
 ## 用法
 
 ### 获取 access token
 
 ```rust
-use wechat_minapp::Client;
+use use wechat_minapp::client::NonStableTokenClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_id = "your app id";
     let app_secret = "your app secret";
 
-    let client = Client::new(app_id, app_secret);
+    let client = NonStableTokenClient::new(app_id, app_secret);
 
-    let access_token = client.access_token().await?;
+    let access_token = client.token().await?;
 
     Ok(())
 }
@@ -31,16 +33,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 获取 stable access token
 
 ```rust
-use wechat_minapp::Client;
+use wechat_minapp::client::StableTokenClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_id = "your app id";
     let app_secret = "your app secret";
 
-    let client = Client::new(app_id, app_secret);
-    let force_refresh = Some(true)
-    let access_token = client.stable_access_token(force_refresh).await?;
+    let client = StableTokenClient::new(app_id, app_secret);
+    let access_token = client.token().await?;
+
+    // 需要强制刷新时可用下面的方法
+    let mut client = StableTokenClient::new(app_id, app_secret);
+    let client.with_force_refresh();
+    let access_token = client.token().await?;
 
     Ok(())
 }
@@ -49,7 +55,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 登录
 
 ```rust
-use wechat_minapp::Client;
+use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::user::{User, Contact};
 use serde::Deserialize;
 
 use crate::{Error, state::AppState};
@@ -65,7 +72,8 @@ pub async fn login(
     state: web::Data<AppState>,
     logger: web::Json<Logger>,
 ) -> Result<impl Responder, Error> {
-    let credential = state.client.login(&logger.code).await?;
+    let user = User::new(state.client);
+    let credential = user.login(&logger.code).await?;
 
     Ok(())
 }
@@ -74,7 +82,8 @@ pub async fn login(
 ### 解码用户信息
 
 ```rust
-use wechat_minapp::Client;
+use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::user::{User, Contact};
 use serde::Deserialize;
 
 use crate::{Error, state::AppState};
@@ -91,7 +100,8 @@ pub async fn decrypt(
     state: web::Data<AppState>,
     payload: web::Json<EncryptedPayload>,
 ) -> Result<impl Responder, Error> {
-    let credential = state.client.login(&payload.code).await?;
+     let user = User::new(state.client);
+    let credential = user.login(&logger.code).await?;
     let user = credential.decrypt(&payload.encrypted_data, &payload.iv)?;
 
     Ok(())
@@ -102,7 +112,8 @@ pub async fn decrypt(
 ### 生成小程序码
 
 ```rust
-use wechat_minapp::{Client,QrCodeArgs};
+use use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 use serde::Deserialize;
 
 use crate::{Error, state::AppState};
@@ -116,7 +127,8 @@ pub async fn get_user_qr(
 
     let page:&str = "/index";
     let qr_args = QrCodeArgs::builder().path(&page).build()?;
-    let buffer = state.client.qr_code(qr_args).await?;
+    let qr = Qr::new(state.client);
+    let buffer = qr.qr_code(qr_args).await?;
 
     Ok(buffer)
 }
@@ -127,8 +139,8 @@ pub async fn get_user_qr(
 ### 检查文本内容安全
 
 ```rust
-use wechat_minapp::minapp_security::{Args, Scene};
-use wechant_minapp::Client;
+use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
+use wechat_minapp::client::StableTokenClient;
 use crate::{Error, state::AppState};
 use actix_web::{Responder, web};
 use serde::{Deserialize,Serialize};
@@ -150,8 +162,8 @@ let args = Args::builder()
         .scene(data.scene)
         .openid(user.openid)
         .build()?;
-    
-    let result = state.client.msg_sec_check(args).await?;
+    let security = MinappSecurity::new(state.client);
+    let result = security.msg_sec_check(args).await?;
     
     if result.is_pass() {
         println!("内容安全，可以发布");

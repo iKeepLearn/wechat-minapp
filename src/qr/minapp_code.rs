@@ -12,14 +12,16 @@
 //! # 快速开始
 //!
 //! ```no_run
-//! use wechat_minapp::{Client, QrCodeArgs, MinappEnvVersion};
+//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // 初始化客户端
 //!     let app_id = "your_app_id";
 //!     let secret = "your_app_secret";
-//!     let client = Client::new(app_id, secret);
+//!     let client = StableTokenClient::new(app_id, secret);
+//!     let qr = Qr::new(client);
 //!
 //!     // 构建小程序码参数
 //!     let args = QrCodeArgs::builder()
@@ -29,7 +31,7 @@
 //!         .build()?;
 //!
 //!     // 生成小程序码
-//!     let qr_code = client.qr_code(args).await?;
+//!     let qr_code = qr.qr_code(args).await?;
 //!     
 //!     // 获取小程序码图片数据
 //!     let buffer = qr_code.buffer();
@@ -63,9 +65,18 @@
 //! ## 生成带颜色的小程序码
 //!
 //! ```no_run
-//! use wechat_minapp::{QrCodeArgs, Rgb, MinappEnvVersion};
+//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
-//! let args = QrCodeArgs::builder()
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // 初始化客户端
+//!     let app_id = "your_app_id";
+//!     let secret = "your_app_secret";
+//!     let client = StableTokenClient::new(app_id, secret);
+//!     let qr = Qr::new(client);
+//!
+//!     let args = QrCodeArgs::builder()
 //!     .path("pages/detail/detail?id=123")
 //!     .width(400)
 //!     .line_color(Rgb::new(255, 0, 0)) // 红色线条
@@ -73,17 +84,40 @@
 //!     .env_version(MinappEnvVersion::Develop)
 //!     .build()
 //!     .unwrap();
+//!     // 生成小程序码
+//!     let qr_code = qr.qr_code(args).await?;
+//!     
+//!     // 获取小程序码图片数据
+//!     let buffer = qr_code.buffer();
+//!     Ok(())
+//! }
 //! ```
 //!
 //! ## 生成简单小程序码
 //!
 //! ```no_run
-//! use wechat_minapp::QrCodeArgs;
+//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
-//! let args = QrCodeArgs::builder()
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // 初始化客户端
+//!     let app_id = "your_app_id";
+//!     let secret = "your_app_secret";
+//!     let client = StableTokenClient::new(app_id, secret);
+//!     let qr = Qr::new(client);
+//!
+//!     let args = QrCodeArgs::builder()
 //!     .path("pages/index/index")
 //!     .build()
 //!     .unwrap();
+//!     // 生成小程序码
+//!     let qr_code = qr.qr_code(args).await?;
+//!     
+//!     // 获取小程序码图片数据
+//!     let buffer = qr_code.buffer();
+//!     Ok(())
+//! }
 //! ```
 //!
 //! # 错误处理
@@ -97,8 +131,9 @@
 //!
 //! 建议在生产环境中妥善处理这些错误。
 
+use super::Qr;
 use crate::{
-    Client, Result, constants,
+    Result, constants,
     error::Error::{self, InternalServer},
 };
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
@@ -113,21 +148,28 @@ use tracing::debug;
 /// # 示例
 ///
 /// ```no_run
-/// use wechat_minapp::{Client, QrCodeArgs};
+/// use wechat_minapp::client::StableTokenClient;
+/// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = Client::new("app_id", "secret");
-/// let args = QrCodeArgs::builder().path("pages/index/index").build()?;
-/// let qr_code = client.qr_code(args).await?;
+/// #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     // 初始化客户端
+///     let app_id = "your_app_id";
+///     let secret = "your_app_secret";
+///     let client = StableTokenClient::new(app_id, secret);
+///     let qr = Qr::new(client);
 ///
-/// // 获取二维码数据
-/// let buffer = qr_code.buffer();
-/// println!("二维码大小: {} bytes", buffer.len());
-///
-/// // 保存到文件
-/// // std::fs::write("qrcode.png", buffer)?;
-/// # Ok(())
-/// # }
+///     let args = QrCodeArgs::builder()
+///     .path("pages/index/index")
+///     .build()
+///     .unwrap();
+///     // 生成小程序码
+///     let qr_code = qr.qr_code(args).await?;
+///     
+///     // 获取小程序码图片数据
+///     let buffer = qr_code.buffer();
+///     Ok(())
+/// }
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct QrCode {
@@ -167,7 +209,7 @@ pub struct QrCodeArgs {
 /// # 示例
 ///
 /// ```
-/// use wechat_minapp::{QrCodeArgs, Rgb, MinappEnvVersion};
+/// use wechat_minapp::qr::{QrCodeArgs, Rgb, MinappEnvVersion};
 ///
 /// let args = QrCodeArgs::builder()
 ///     .path("pages/index/index")
@@ -196,7 +238,7 @@ pub struct QrCodeArgBuilder {
 /// # 示例
 ///
 /// ```
-/// use wechat_minapp::Rgb;
+/// use wechat_minapp::qr::Rgb;
 ///
 /// let red = Rgb::new(255, 0, 0);      // 红色
 /// let green = Rgb::new(0, 255, 0);    // 绿色
@@ -356,7 +398,7 @@ impl QrCodeArgBuilder {
     }
 }
 
-impl Client {
+impl Qr {
     /// 生成小程序二维码
     ///
     /// 调用微信小程序二维码生成接口，返回包含二维码图片数据的 [`QrCode`] 对象。
@@ -372,19 +414,36 @@ impl Client {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::{Client, QrCodeArgs};
+    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
     ///
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let client = Client::new("app_id", "secret");
-    /// let args = QrCodeArgs::builder()
-    ///     .path("pages/index/index")
-    ///     .width(300)
-    ///     .build()?;
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     // 初始化客户端
+    ///     let app_id = "your_app_id";
+    ///     let secret = "your_app_secret";
+    ///     let client = StableTokenClient::new(app_id, secret);
+    ///     let qr = Qr::new(client);
+    ///
+    ///     // 构建小程序码参数
+    ///     let args = QrCodeArgs::builder()
+    ///         .path("pages/index/index")
+    ///         .width(300)
+    ///         .env_version(MinappEnvVersion::Release)
+    ///         .build()?;
+    ///
+    ///     // 生成小程序码
+    ///     let qr_code = qr.qr_code(args).await?;
     ///     
-    /// let qr_code = client.qr_code(args).await?;
-    /// println!("二维码生成成功，大小: {} bytes", qr_code.buffer().len());
-    /// # Ok(())
-    /// # }
+    ///     // 获取小程序码图片数据
+    ///     let buffer = qr_code.buffer();
+    ///     println!("生成的小程序码大小: {} bytes", buffer.len());
+    ///
+    ///     // 可以将 buffer 保存为文件或直接返回给前端
+    ///     // std::fs::write("qrcode.png", buffer)?;
+    ///     
+    ///     Ok(())
+    /// }
     /// ```
     ///
     /// # 错误
@@ -398,8 +457,8 @@ impl Client {
 
         let mut query = HashMap::new();
         let mut body = HashMap::new();
-
-        query.insert("access_token", self.token().await?);
+        let client = &self.client.inner_client().client;
+        query.insert("access_token", self.client.token().await?);
         body.insert("path", args.path);
 
         if let Some(width) = args.width {
@@ -427,8 +486,7 @@ impl Client {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert("encoding", HeaderValue::from_static("null"));
 
-        let response = self
-            .request()
+        let response = client
             .post(constants::QR_CODE_ENDPOINT)
             .headers(headers)
             .query(&query)
