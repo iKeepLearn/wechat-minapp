@@ -66,22 +66,20 @@ impl Client {
     /// 登录凭证校验
     /// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
     /// ```rust
-    /// use axum::{extract::State, response::IntoResponse, Json};
-    /// use wechat_minapp::{client::Client, Result};
+    /// use wechat_minapp::Client;
     /// use serde::Deserialize;
-    ///
+    /// use crate::{Error, state::AppState};
+    /// use actix_web::{Responder, web};
     /// #[derive(Deserialize, Default)]
     /// #[serde(default)]
-    /// pub(crate) struct Logger {
+    /// pub struct Logger {
     ///     code: String,
     /// }
-    ///
-    /// pub(crate) async fn login(
-    ///     State(client): State<Client>,
-    ///     Json(logger): Json<Logger>,
-    /// ) -> Result<impl IntoResponse> {
-    ///    let credential = client.login(&logger.code).await?;
-    ///
+    /// pub async fn login(
+    ///     state: web::Data<AppState>,
+    ///     logger: web::Json<Logger>,
+    /// ) -> Result<impl Responder, Error> {
+    ///     let credential = state.client.login(&logger.code).await?;
     ///     Ok(())
     /// }
     /// ```

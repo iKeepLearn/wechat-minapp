@@ -44,6 +44,11 @@ pub struct Rgb {
     b: i8,
 }
 
+impl Rgb {
+    pub fn new(r: i8, g: i8, b: i8) -> Self {
+        Rgb { r, g, b }
+    }
+}
 impl QrCodeArgs {
     pub fn builder() -> QrCodeArgBuilder {
         QrCodeArgBuilder::new()

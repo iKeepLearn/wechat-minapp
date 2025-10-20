@@ -7,6 +7,7 @@ mod user;
 
 pub mod constants;
 pub mod error;
+pub mod minapp_security;
 
 pub type Result<T> = std::result::Result<T, error::Error>;
 pub use client::Client;

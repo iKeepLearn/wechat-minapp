@@ -48,9 +48,10 @@ impl Credential {
     /// 解密用户数据，使用的是 AES-128-CBC 算法，数据采用PKCS#7填充。
     /// https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html
     /// ```rust
-    /// use axum::{extract::State, response::IntoResponse, Json};
     /// use wechat_minapp::{Client, Result};
     /// use serde::Deserialize;
+    /// use crate::{Error, state::AppState};
+    /// use actix_web::{Responder, web};
     ///
     /// #[derive(Deserialize, Default)]
     /// pub(crate) struct EncryptedPayload {
@@ -60,10 +61,10 @@ impl Credential {
     /// }
     ///
     /// pub(crate) async fn decrypt(
-    ///     State(client): State<Client>,
-    ///     Json(payload): Json<EncryptedPayload>,
-    /// ) -> Result<impl IntoResponse> {
-    ///     let credential = client.login(&payload.code).await?;
+    ///     state: web::Data<AppState>,
+    ///     payload: web::Json<EncryptedPayload>,
+    /// ) -> Result<impl Responder, Error>  {
+    ///     let credential = state.client.login(&payload.code).await?;
     ///
     ///     let user = credential.decrypt(&payload.encrypted_data, &payload.iv)?;
     ///

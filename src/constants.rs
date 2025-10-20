@@ -11,3 +11,5 @@ pub const PHONE_END_POINT: &str = "https://api.weixin.qq.com/wxa/business/getuse
 pub const AUTHENTICATION_END_POINT: &str = "https://api.weixin.qq.com/sns/jscode2session";
 
 pub const QR_CODE_ENDPOINT: &str = "https://api.weixin.qq.com/wxa/getwxacode";
+
+pub const MSG_SEC_CHECK_END_POINT: &str = "https://api.weixin.qq.com/wxa/msg_sec_check";
