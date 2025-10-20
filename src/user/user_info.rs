@@ -306,7 +306,6 @@ impl User {
     ///     let user = User::new(client);
     ///     let code = "0816abc123def456";
     ///     let contact = user.get_contact(code, None).await?;
-    ///     let info = credential.decrypt(&encrypted_data, &iv)?;
     ///     println!("用户手机号: {}", contact.phone_number());
     ///     
     ///     Ok(())

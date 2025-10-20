@@ -109,6 +109,34 @@ pub async fn decrypt(
 
 ```
 
+### 获取用户手机号
+
+```rust
+use wechat_minapp::client::StableTokenClient;
+use wechat_minapp::user::User;
+use serde::Deserialize;
+
+use crate::{Error, state::AppState};
+use actix_web::{Responder, web};
+
+#[derive(Deserialize, Default)]
+pub struct PhonePayload {
+    code: String,
+    openid: Option<String>,
+}
+
+pub async fn get_phone_num(
+    state: web::Data<AppState>,
+    payload: web::Json<PhonePayload>,
+) -> Result<impl Responder, Error> {
+     let user = User::new(state.client);
+     let phone = user.get_contact(&payload.code,&payload.openid).await?;
+
+    Ok(web::Json(phone))
+}
+
+```
+
 ### 生成小程序码
 
 ```rust
