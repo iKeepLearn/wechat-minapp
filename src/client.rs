@@ -90,7 +90,7 @@ impl Client {
     /// ```
     /// use wechat_minapp::Client;
     ///
-    /// let client = Client::new("wx1234567890abcdef", "your_app_secret_here");
+    /// let client = Client::new("your_appid", "your_app_secret_here");
     /// ```
     pub fn new(app_id: &str, secret: &str) -> Self {
         let client = reqwest::Client::new();
