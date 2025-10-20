@@ -42,7 +42,7 @@ use tracing::{debug, instrument};
 ///     // 用户登录
 ///     let code = "user_login_code_from_frontend";
 ///     let credential = client.login(code).await?;
-///     println!("用户OpenID: {}", credential.openid());
+///     println!("用户OpenID: {}", credential.open_id());
 ///
 ///     // 获取访问令牌
 ///     let access_token = client.access_token().await?;
@@ -70,6 +70,7 @@ pub struct Client {
     access_token: Arc<RwLock<AccessToken>>,
     refreshing: Arc<AtomicBool>,
     notify: Arc<Notify>,
+    use_stable_token: bool,
 }
 
 impl Client {
@@ -107,6 +108,27 @@ impl Client {
             })),
             refreshing: Arc::new(AtomicBool::new(false)),
             notify: Arc::new(Notify::new()),
+            use_stable_token: true,
+        }
+    }
+
+    pub fn with_non_stable(app_id: &str, secret: &str) -> Self {
+        let client = reqwest::Client::new();
+
+        Self {
+            inner: Arc::new(ClientInner {
+                app_id: app_id.into(),
+                secret: secret.into(),
+                client,
+            }),
+            access_token: Arc::new(RwLock::new(AccessToken {
+                access_token: "".to_string(),
+                expired_at: Utc::now(),
+                force_refresh: None,
+            })),
+            refreshing: Arc::new(AtomicBool::new(false)),
+            notify: Arc::new(Notify::new()),
+            use_stable_token: false,
         }
     }
 
@@ -143,7 +165,7 @@ impl Client {
     ///     let code = "0816abc123def456";
     ///     let credential = client.login(code).await?;
     ///
-    ///     println!("用户OpenID: {}", credential.openid());
+    ///     println!("用户OpenID: {}", credential.open_id());
     ///     println!("会话密钥: {}", credential.session_key());
     ///     
     ///     Ok(())
@@ -184,6 +206,14 @@ impl Client {
             Ok(credential)
         } else {
             Err(InternalServer(response.text().await?))
+        }
+    }
+
+    pub async fn token(&self) -> Result<String> {
+        if self.use_stable_token {
+            self.stable_access_token(None).await
+        } else {
+            self.access_token().await
         }
     }
 

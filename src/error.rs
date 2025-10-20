@@ -10,18 +10,6 @@
 //! - [`Error`][]: 主要的错误枚举，包含所有可能的错误情况
 //! - [`ErrorCode`]: 微信官方错误码的 Rust 枚举表示
 //!
-//! # 错误处理示例
-//!
-//! ```no_run
-//! use wechat_minapp::error::{Error, ErrorCode};
-//!
-//! // 处理微信 API 返回的错误
-//! fn handle_wechat_error(errcode: i32, errmsg: String) -> Result<(), Error> {
-//!     if let Some(code) = ErrorCode::from_repr(errcode) {
-//!         return Err(Error::from((code, errmsg)));
-//!     }
-//!     Ok(())
-//! }
 //!
 //! // 处理网络错误
 //! async fn make_api_request() -> Result<(), Error> {
@@ -82,18 +70,6 @@ use strum::Display;
 /// - `System`: 微信系统繁忙
 /// - `InternalServer`: 内部服务器错误
 ///
-/// # 示例
-///
-/// ```no_run
-/// use wechat_minapp::error::Error;
-///
-/// async function make_request() -> Result<(), Error> {
-///     // 使用 ? 操作符自动转换错误
-///     let response = reqwest::get("https://api.weixin.qq.com/endpoint").await?;
-///     let data: serde_json::Value = response.json().await?;
-///     Ok(())
-/// }
-/// ```
 ///
 /// # 序列化
 ///
@@ -102,70 +78,6 @@ use strum::Display;
 #[non_exhaustive]
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    // #[error("system error: {0}")]
-    // System(String),
-    // #[error("invalid credential: {0}")]
-    // InvalidCredential(String),
-    // #[error("invalid grant type: {0}")]
-    // InvalidGrantType(String),
-    // #[error("invalid app id: {0}")]
-    // InvalidAppId(String),
-    // #[error("invalid code: {0}")]
-    // InvalidCode(String),
-    // #[error("invalid parameter: {0}")]
-    // InvalidParameter(String),
-    // #[error("invalid secret: {0}")]
-    // InvalidSecret(String),
-    // #[error("forbidden ip: {0}")]
-    // ForbiddenIp(String),
-    // #[error("code blocked: {0}")]
-    // CodeBlocked(String),
-    // #[error("secret frozen: {0}")]
-    // SecretFrozen(String),
-    // #[error("missing access token: {0}")]
-    // MissingAccessToken(String),
-    // #[error("missing app id: {0}")]
-    // MissingAppId(String),
-    // #[error("missing secret: {0}")]
-    // MissingSecret(String),
-    // #[error("missing code: {0}")]
-    // MissingCode(String),
-    // #[error("required post method: {0}")]
-    // RequiredPostMethod(String),
-    // #[error("daily request limit exceeded: {0}")]
-    // DailyRequestLimitExceeded(String),
-    // #[error("rate limit exceeded: {0}")]
-    // RateLimitExceeded(String),
-    // #[error("forbidden token: {0}")]
-    // ForbiddenToken(String),
-    // #[error("account frozen: {0}")]
-    // AccountFrozen(String),
-    // #[error("third party token: {0}")]
-    // ThirdPartyToken(String),
-    // #[error("session key not existed or expired: {0}")]
-    // SessionKeyNotExistedOrExpired(String),
-    // #[error("invalid signature method: {0}")]
-    // InvalidSignatureMethod(String),
-    // #[error("invalid signature: {0}")]
-    // InvalidSignature(String),
-    // #[error("confirm required: {0}")]
-    // ConfirmRequired(String),
-    // #[error("request denied one day: {0}")]
-    // RequestDeniedOneDay(String),
-    // #[error("request denied one hour: {0}")]
-    // RequestDeniedOneHour(String),
-    // #[error("unpad error: {0}")]
-    // Unpad(UnpadError),
-    // #[error("aes invalid length: {0}")]
-    // AesInvalidLength(#[from] AesInvalidLength),
-    // #[error("base64 decode error: {0}")]
-    // Base64Decode(#[from] Base64DecodeError),
-    // #[error("reqwest: {0}")]
-    // Reqwest(#[from] ReqwestError),
-    // #[error("json error: {0}")]
-    // SerdeJson(#[from] SerdeJsonError),
-    // #[error("internal error: {0}")]
-    // InternalServer(String),
     /// 微信系统繁忙，请稍候再试
     #[error("system error: {0}")]
     System(String),
@@ -305,21 +217,6 @@ impl From<UnpadError> for Error {
 ///
 /// 对应微信小程序 API 返回的错误码，每个错误码都有对应的中文描述。
 ///
-/// # 使用示例
-///
-/// ```
-/// use wechat_minapp::error::ErrorCode;
-///
-/// // 从数值获取错误码
-/// if let Some(error_code) = ErrorCode::from_repr(40029) {
-///     println!("错误: {}", error_code);
-///     // 输出: "错误: code 无效"
-/// }
-///
-/// // 获取错误码的数值
-/// let code_value = ErrorCode::InvalidCode as i32;
-/// assert_eq!(code_value, 40029);
-/// ```
 ///
 /// # 错误码说明
 ///

@@ -16,7 +16,8 @@
 //! # 快速开始
 //!
 //! ```no_run
-//! use wechat_minapp::{Client, User, Contact};
+//! use wechat_minapp::Client;
+//! use wechat_minapp::user::{User, Contact};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let client = Client::new("app_id", "secret");
@@ -46,7 +47,7 @@ use crate::{Result, client::Client, constants, error::Error::InternalServer, res
 /// # 示例
 ///
 /// ```no_run
-/// use wechat_minapp::User;
+/// use wechat_minapp::user::User;
 ///
 /// # fn process_user(user: User) {
 /// println!("昵称: {}", user.nickname());
@@ -287,7 +288,7 @@ impl Client {
         let mut query = HashMap::new();
         let mut body = HashMap::new();
 
-        query.insert("access_token", self.access_token().await?);
+        query.insert("access_token", self.token().await?);
         body.insert("code", code);
 
         if let Some(open_id) = open_id {

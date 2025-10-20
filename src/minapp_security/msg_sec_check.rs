@@ -47,15 +47,12 @@
 //! }
 //! ```
 
-
-
 use super::{Label, Suggest};
 use crate::{Result, client::Client, constants, error::Error};
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
-
 
 /// 内容安全检测场景
 ///
@@ -92,7 +89,6 @@ pub enum Scene {
     /// 社交日志
     SocialLog = 4,
 }
-
 
 /// 微信内容安全检测请求参数
 ///
@@ -326,7 +322,6 @@ impl Scene {
     }
 }
 
-
 /// 详细检测结果
 ///
 /// 包含具体的检测策略、建议、标签和置信度等信息。
@@ -367,7 +362,6 @@ pub struct ComprehensiveResult {
     /// 命中标签枚举值
     pub label: Label,
 }
-
 
 /// 内容安全检测返回结果
 ///

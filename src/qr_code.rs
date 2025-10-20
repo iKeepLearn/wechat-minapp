@@ -399,7 +399,7 @@ impl Client {
         let mut query = HashMap::new();
         let mut body = HashMap::new();
 
-        query.insert("access_token", self.access_token().await?);
+        query.insert("access_token", self.token().await?);
         body.insert("path", args.path);
 
         if let Some(width) = args.width {

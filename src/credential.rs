@@ -183,7 +183,7 @@ impl Client {
 
         let mut map = HashMap::new();
 
-        map.insert("access_token", self.access_token().await?);
+        map.insert("access_token", self.token().await?);
         map.insert("openid", open_id.to_string());
         map.insert("signature", signature);
         map.insert("sig_method", "hmac_sha256".into());

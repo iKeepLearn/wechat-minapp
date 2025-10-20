@@ -1,3 +1,8 @@
+//! 微信小程序内容安全检测模块
+//!
+//! - [`msg_sec_check`][]: 文本内容安全检测。
+//!
+
 mod msg_sec_check;
 
 use serde::{Deserialize, Serialize};
