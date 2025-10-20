@@ -1,3 +1,54 @@
+//! 微信小程序内容安全检测模块
+//!
+//! 该模块提供了微信小程序内容安全检测功能，用于检测文本内容是否包含违规信息。
+//!
+//! # 主要功能
+//!
+//! - 文本内容安全检测
+//! - 多场景检测支持（资料、评论、论坛、社交日志）
+//! - 详细的检测结果分析
+//! - 置信度评分和关键词命中
+//!
+//! # 使用场景
+//!
+//! 适用于需要用户生成内容的场景：
+//!
+//! - 用户昵称、个性签名
+//! - 评论、留言
+//! - 论坛帖子、文章
+//! - 社交动态、日志
+//!
+//! # 快速开始
+//!
+//! ```no_run
+//! use wechat_minapp::{Client, minapp_security::{Args, Scene}};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let client = Client::new("app_id", "secret");
+//!     
+//!     let args = Args::builder()
+//!         .content("需要检测的文本内容")
+//!         .scene(Scene::Comment)
+//!         .openid("user_openid")
+//!         .build()?;
+//!     
+//!     let result = client.msg_sec_check(&args).await?;
+//!     
+//!     if result.is_pass() {
+//!         println!("内容安全，可以发布");
+//!     } else if result.needs_review() {
+//!         println!("内容需要人工审核");
+//!     } else {
+//!         println!("内容有风险，建议修改");
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+
+
+
 use super::{Label, Suggest};
 use crate::{Result, client::Client, constants, error::Error};
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
@@ -5,7 +56,31 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
 
+
 /// 内容安全检测场景
+///
+/// 定义不同的内容检测场景，不同场景有不同的检测策略和敏感度。
+///
+/// # 场景说明
+///
+/// - **资料**: 用户昵称、头像、个性签名等个人信息
+/// - **评论**: 用户评论、留言等互动内容  
+/// - **论坛**: 论坛帖子、文章等长文本内容
+/// - **社交日志**: 朋友圈、动态等社交内容
+///
+/// # 示例
+///
+/// ```
+/// use wechat_minapp::minapp_security::Scene;
+///
+/// let profile_scene = Scene::Profile;
+/// let comment_scene = Scene::Comment;
+/// let forum_scene = Scene::Forum;
+/// let social_scene = Scene::SocialLog;
+///
+/// assert_eq!(profile_scene as u32, 1);
+/// assert_eq!(profile_scene.description(), "资料");
+/// ```
 #[derive(Debug, Serialize, Clone, Copy, PartialEq)]
 pub enum Scene {
     /// 资料
@@ -18,7 +93,30 @@ pub enum Scene {
     SocialLog = 4,
 }
 
+
 /// 微信内容安全检测请求参数
+///
+/// 用于配置内容安全检测的各项参数，包括检测内容、场景、用户信息等。
+///
+/// # 字段说明
+///
+/// - `content`: 待检测的文本内容，最大长度2500字符
+/// - `version`: 接口版本号，固定为2
+/// - `scene`: 检测场景，不同场景有不同的检测策略
+/// - `openid`: 用户openid，用户需在近两小时访问过小程序
+/// - `title`: 文本标题（可选）
+/// - `nickname`: 用户昵称（可选）
+/// - `signature`: 个性签名，仅在资料场景有效（可选）
+///
+/// # 示例
+///
+/// ```
+/// use wechat_minapp::minapp_security::{Args, Scene};
+///
+/// let args = Args::new("待检测的文本内容", Scene::Comment, "user_openid");
+/// assert_eq!(args.content_length(), 18);
+/// assert!(args.is_profile_scene());
+/// ```
 #[derive(Debug, Serialize, Clone)]
 pub struct Args {
     /// 需检测的文本内容，文本字数的上限为2500字，需使用UTF-8编码
@@ -41,6 +139,23 @@ pub struct Args {
 }
 
 /// Args 构建器，提供链式调用和验证
+///
+/// 用于构建内容安全检测参数，提供参数验证和便捷的链式调用。
+///
+/// # 示例
+///
+/// ```
+/// use wechat_minapp::minapp_security::{Args, Scene};
+///
+/// let args = Args::builder()
+///     .content("待检测内容")
+///     .scene(Scene::Comment)
+///     .openid("user_openid")
+///     .title("文章标题")
+///     .nickname("用户昵称")
+///     .build()
+///     .unwrap();
+/// ```
 #[derive(Debug, Default)]
 pub struct ArgsBuilder {
     content: Option<String>,
@@ -211,7 +326,19 @@ impl Scene {
     }
 }
 
+
 /// 详细检测结果
+///
+/// 包含具体的检测策略、建议、标签和置信度等信息。
+///
+/// # 字段说明
+///
+/// - `strategy`: 使用的检测策略类型
+/// - `errcode`: 错误码，0表示该项结果有效
+/// - `suggest`: 检测建议
+/// - `label`: 命中的标签类型
+/// - `keyword`: 命中的自定义关键词
+/// - `prob`: 置信度，0-100，越高越可能属于当前标签
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DetailResult {
     /// 策略类型
@@ -241,7 +368,40 @@ pub struct ComprehensiveResult {
     pub label: Label,
 }
 
+
 /// 内容安全检测返回结果
+///
+/// 包含内容安全检测的完整结果信息。
+///
+/// # 字段说明
+///
+/// - `errcode`: 全局错误码，0表示请求成功
+/// - `errmsg`: 错误信息
+/// - `detail`: 详细的检测结果列表
+/// - `result`: 综合检测结果
+/// - `trace_id`: 唯一请求标识，用于问题排查
+///
+/// # 示例
+///
+/// ```no_run
+/// use wechat_minapp::minapp_security::MsgSecCheckResult;
+///
+/// # fn process_result(result: MsgSecCheckResult) {
+/// if result.is_success() {
+///     if result.is_pass() {
+///         println!("内容安全");
+///     } else if result.needs_review() {
+///         println!("需要人工审核");
+///     } else {
+///         println!("内容有风险");
+///     }
+///     
+///     for detail in result.get_valid_details() {
+///         println!("策略: {}, 置信度: {:?}", detail.strategy, detail.prob);
+///     }
+/// }
+/// # }
+/// ```
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MsgSecCheckResult {
     /// 错误码
@@ -305,36 +465,53 @@ impl MsgSecCheckResult {
 impl Client {
     /// 内容安全检测
     ///
+    /// 对文本内容进行安全检测，识别违规内容。
+    ///
+    /// # 参数
+    ///
+    /// - `args`: 内容安全检测参数
+    ///
+    /// # 返回
+    ///
+    /// 成功返回 `Ok(MsgSecCheckResult)`，包含检测结果
+    ///
+    /// # 错误
+    ///
+    /// - 参数验证错误
+    /// - 网络错误
+    /// - 微信 API 返回错误
+    ///
     /// # 示例
-    /// ```ignore
-    /// use wechat_minapp::minapp_security::{Args, Scene};
-    /// use wechant_minapp::Client;
+    ///
+    /// ```no_run
+    /// use wechat_minapp::{Client, minapp_security::{Args, Scene}};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let app_id = "your app id";
-    ///     let secret = "your app secret";
+    ///     let client = Client::new("app_id", "secret");
     ///     
-    ///     let client = Client::new(app_id, secret);
     ///     let args = Args::builder()
     ///         .content("需要检测的文本内容")
     ///         .scene(Scene::Comment)
     ///         .openid("user_openid")
     ///         .build()?;
     ///     
-    ///     let result = client.msg_sec_check(args).await?;
+    ///     let result = client.msg_sec_check(&args).await?;
     ///     
-    ///     if result.is_pass() {
-    ///         println!("内容安全，可以发布");
-    ///     } else if result.needs_review() {
-    ///         println!("内容需要人工审核");
-    ///     } else {
-    ///         println!("内容有风险，建议修改");
+    ///     match (result.is_pass(), result.needs_review(), result.is_risky()) {
+    ///         (true, _, _) => println!("内容安全，可以发布"),
+    ///         (_, true, _) => println!("内容需要人工审核"),
+    ///         (_, _, true) => println!("内容有风险，建议修改"),
+    ///         _ => println!("未知状态"),
     ///     }
     ///     
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # API 文档
+    ///
+    /// [文本安全检测](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/sec-center/sec-check/msgSecCheck.html)
     pub async fn msg_sec_check(&self, args: &Args) -> Result<MsgSecCheckResult> {
         debug!("msg_sec_check args: {:?}", &args);
 
