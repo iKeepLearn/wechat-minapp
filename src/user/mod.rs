@@ -67,12 +67,12 @@ mod credential;
 mod user_info;
 use crate::client::Client;
 
-pub struct User {
-    pub client: Box<dyn Client>,
+pub struct User<'a> {
+    pub client: Box<&'a dyn Client>,
 }
 
-impl User {
-    pub fn new<T: Client + 'static>(client: T) -> Self {
+impl<'a> User<'a> {
+    pub fn new<T: Client + 'static>(client: &'a T) -> Self {
         User {
             client: Box::new(client),
         }

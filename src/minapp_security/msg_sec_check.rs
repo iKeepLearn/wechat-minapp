@@ -458,7 +458,7 @@ impl MsgSecCheckResult {
     }
 }
 
-impl MinappSecurity {
+impl<'a> MinappSecurity<'a> {
     /// 内容安全检测
     ///
     /// 对文本内容进行安全检测，识别违规内容。

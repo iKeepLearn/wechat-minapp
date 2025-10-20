@@ -130,7 +130,7 @@ impl std::fmt::Debug for CredentialBuilder {
 
 type HmacSha256 = Hmac<Sha256>;
 
-impl User {
+impl<'a> User<'a> {
     /// 检查登录态是否过期
     /// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/checkSessionKey.html
     #[instrument(skip(self, session_key, open_id))]

@@ -4,14 +4,13 @@ use wechat_minapp::client::StableTokenClient;
 use wechat_minapp::minapp_security::{Args, MinappSecurity, Scene};
 
 /// 初始化测试客户端
-fn setup_client() -> MinappSecurity {
+fn setup_client() -> StableTokenClient {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
 
-    let client = StableTokenClient::new(&app_id, &secret);
-    MinappSecurity::new(client)
+    StableTokenClient::new(&app_id, &secret)
 }
 
 /// 获取测试用的用户openid
@@ -22,7 +21,7 @@ fn get_test_openid() -> String {
 #[tokio::test]
 async fn test_msg_sec_check_normal_content() {
     let client = setup_client();
-
+    let security = MinappSecurity::new(&client);
     let args = Args::builder()
         .content("这是一段正常的文本内容，用于测试微信内容安全检测API。今天天气真好，阳光明媚，适合出门散步。")
         .scene(Scene::Comment)
@@ -30,7 +29,7 @@ async fn test_msg_sec_check_normal_content() {
         .build()
         .unwrap();
 
-    let result = client.msg_sec_check(&args).await;
+    let result = security.msg_sec_check(&args).await;
 
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
@@ -47,7 +46,7 @@ async fn test_msg_sec_check_normal_content() {
 #[tokio::test]
 async fn test_msg_sec_check_with_title_and_nickname() {
     let client = setup_client();
-
+    let security = MinappSecurity::new(&client);
     let args = Args::builder()
         .content("这是一个带有标题和昵称的测试内容。内容本身是正常的，用于验证可选参数的功能。")
         .scene(Scene::Forum)
@@ -57,7 +56,7 @@ async fn test_msg_sec_check_with_title_and_nickname() {
         .build()
         .unwrap();
 
-    let result = client.msg_sec_check(&args).await;
+    let result = security.msg_sec_check(&args).await;
 
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
@@ -70,7 +69,7 @@ async fn test_msg_sec_check_with_title_and_nickname() {
 #[tokio::test]
 async fn test_msg_sec_check_profile_scene() {
     let client = setup_client();
-
+    let security = MinappSecurity::new(&client);
     let args = Args::builder()
         .content("这是一个用户的个人资料描述，包含一些基本的个人信息和兴趣爱好。")
         .scene(Scene::Profile)
@@ -80,7 +79,7 @@ async fn test_msg_sec_check_profile_scene() {
         .build()
         .unwrap();
 
-    let result = client.msg_sec_check(&args).await;
+    let result = security.msg_sec_check(&args).await;
 
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
@@ -95,7 +94,7 @@ async fn test_msg_sec_check_different_scenes() {
     let client = setup_client();
     let openid = get_test_openid();
     let test_content = "今天天气不错";
-
+    let security = MinappSecurity::new(&client);
     let comment_args = Args::builder()
         .content(test_content)
         .scene(Scene::Comment)
@@ -103,7 +102,7 @@ async fn test_msg_sec_check_different_scenes() {
         .build()
         .unwrap();
 
-    let comment_result = client.msg_sec_check(&comment_args).await;
+    let comment_result = security.msg_sec_check(&comment_args).await;
     assert!(comment_result.is_ok());
     assert!(comment_result.unwrap().is_success());
 
@@ -114,7 +113,7 @@ async fn test_msg_sec_check_different_scenes() {
         .build()
         .unwrap();
 
-    let forum_result = client.msg_sec_check(&forum_args).await;
+    let forum_result = security.msg_sec_check(&forum_args).await;
     assert!(forum_result.is_ok());
     assert!(forum_result.unwrap().is_success());
 
@@ -125,7 +124,7 @@ async fn test_msg_sec_check_different_scenes() {
         .build()
         .unwrap();
 
-    let social_result = client.msg_sec_check(&social_args).await;
+    let social_result = security.msg_sec_check(&social_args).await;
     assert!(social_result.is_ok());
     assert!(social_result.unwrap().is_success());
 }
@@ -133,7 +132,7 @@ async fn test_msg_sec_check_different_scenes() {
 #[tokio::test]
 async fn test_msg_sec_check_content_length_boundary() {
     let client = setup_client();
-
+    let security = MinappSecurity::new(&client);
     let boundary_content = "check__content__long".repeat(125);
     assert_eq!(boundary_content.len(), 2500);
 
@@ -144,7 +143,7 @@ async fn test_msg_sec_check_content_length_boundary() {
         .build()
         .unwrap();
 
-    let result = client.msg_sec_check(&args).await;
+    let result = security.msg_sec_check(&args).await;
 
     assert!(result.is_ok(), "边界长度内容检测失败: {:?}", result.err());
 
@@ -157,7 +156,7 @@ async fn test_msg_sec_check_content_length_boundary() {
 #[tokio::test]
 async fn test_msg_sec_check_result_structure() {
     let client = setup_client();
-
+    let security = MinappSecurity::new(&client);
     let args = Args::builder()
         .content("验证返回结果结构的测试内容")
         .scene(Scene::Comment)
@@ -165,7 +164,7 @@ async fn test_msg_sec_check_result_structure() {
         .build()
         .unwrap();
 
-    let result = client.msg_sec_check(&args).await;
+    let result = security.msg_sec_check(&args).await;
     print!("返回结果结构检测结果: {:?}", result);
     let result = result.unwrap();
 

@@ -201,7 +201,7 @@ impl WatermarkBuilder {
     }
 }
 
-impl User {
+impl<'a> User<'a> {
     /// 用户登录凭证校验
     ///
     /// 通过微信前端获取的临时登录凭证 code，换取用户的唯一标识 OpenID 和会话密钥。

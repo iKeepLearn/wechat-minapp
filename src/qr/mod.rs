@@ -4,12 +4,12 @@ pub mod minapp_code;
 use crate::client::Client;
 pub use minapp_code::{MinappEnvVersion, QrCode, QrCodeArgs, Rgb};
 
-pub struct Qr {
-    pub client: Box<dyn Client>,
+pub struct Qr<'a> {
+    pub client: Box<&'a dyn Client>,
 }
 
-impl Qr {
-    pub fn new<T: Client + 'static>(client: T) -> Self {
+impl<'a> Qr<'a> {
+    pub fn new<T: Client + 'static>(client: &'a T) -> Self {
         Qr {
             client: Box::new(client),
         }

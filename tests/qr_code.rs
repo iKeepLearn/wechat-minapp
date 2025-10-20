@@ -4,14 +4,13 @@ use wechat_minapp::client::StableTokenClient;
 use wechat_minapp::qr::{MinappEnvVersion, Qr, QrCodeArgs, Rgb};
 
 /// 初始化测试客户端
-fn setup_client() -> Qr {
+fn setup_client() -> StableTokenClient {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
 
-    let client = StableTokenClient::new(&app_id, &secret);
-    Qr::new(client)
+    StableTokenClient::new(&app_id, &secret)
 }
 
 #[test]
@@ -95,6 +94,7 @@ fn test_qr_code_args_build_path_boundary() {
 #[tokio::test]
 async fn test_qr_code_with_all_parameters() {
     let client = setup_client();
+    let qr = Qr::new(&client);
 
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
@@ -106,7 +106,7 @@ async fn test_qr_code_with_all_parameters() {
         .build()
         .unwrap();
 
-    let result = client.qr_code(args).await;
+    let result = qr.qr_code(args).await;
 
     assert!(result.is_ok());
     let qr_code = result.unwrap();
@@ -116,14 +116,14 @@ async fn test_qr_code_with_all_parameters() {
 #[tokio::test]
 async fn test_qr_code_with_only_width() {
     let client = setup_client();
-
+    let qr = Qr::new(&client);
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
         .width(200)
         .build()
         .unwrap();
 
-    let result = client.qr_code(args).await;
+    let result = qr.qr_code(args).await;
 
     assert!(result.is_ok());
 }
@@ -131,14 +131,14 @@ async fn test_qr_code_with_only_width() {
 #[tokio::test]
 async fn test_qr_code_with_only_env_version() {
     let client = setup_client();
-
+    let qr = Qr::new(&client);
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
         .env_version(MinappEnvVersion::Develop)
         .build()
         .unwrap();
 
-    let result = client.qr_code(args).await;
+    let result = qr.qr_code(args).await;
 
     assert!(result.is_ok());
 }

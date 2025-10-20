@@ -131,12 +131,12 @@ impl From<&str> for Suggest {
     }
 }
 
-pub struct MinappSecurity {
-    pub client: Box<dyn Client>,
+pub struct MinappSecurity<'a> {
+    pub client: Box<&'a dyn Client>,
 }
 
-impl MinappSecurity {
-    pub fn new<T: Client + 'static>(client: T) -> Self {
+impl<'a> MinappSecurity<'a> {
+    pub fn new<T: Client + 'static>(client:&'a T) -> Self {
         MinappSecurity {
             client: Box::new(client),
         }

@@ -398,7 +398,7 @@ impl QrCodeArgBuilder {
     }
 }
 
-impl Qr {
+impl<'a> Qr<'a> {
     /// 生成小程序二维码
     ///
     /// 调用微信小程序二维码生成接口，返回包含二维码图片数据的 [`QrCode`] 对象。
