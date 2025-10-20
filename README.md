@@ -114,8 +114,10 @@ pub async fn get_user_qr(
     state: web::Data<AppState>,
 ) -> Result<impl Responder, Error> {
 
+    let page:&str = "/index";
     let qr_args = QrCodeArgs::builder().path(&page).build()?;
-        let buffer = state.client.qr_code(qr_args).await?;
+    let buffer = state.client.qr_code(qr_args).await?;
+
     Ok(buffer)
 }
 
@@ -149,7 +151,7 @@ let args = Args::builder()
         .openid(user.openid)
         .build()?;
     
-    let result = client.msg_sec_check(args).await?;
+    let result = state.client.msg_sec_check(args).await?;
     
     if result.is_pass() {
         println!("内容安全，可以发布");

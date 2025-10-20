@@ -37,21 +37,45 @@ pub struct QrCodeArgBuilder {
     is_hyaline: Option<bool>,
     env_version: Option<MinappEnvVersion>,
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Rgb {
-    r: i8,
-    g: i8,
-    b: i8,
+    r: i16,
+    g: i16,
+    b: i16,
 }
 
 impl Rgb {
-    pub fn new(r: i8, g: i8, b: i8) -> Self {
+    pub fn new(r: i16, g: i16, b: i16) -> Self {
         Rgb { r, g, b }
     }
 }
 impl QrCodeArgs {
     pub fn builder() -> QrCodeArgBuilder {
         QrCodeArgBuilder::new()
+    }
+
+    pub fn path(&self) -> String {
+        self.path.clone()
+    }
+
+    pub fn width(&self) -> Option<i16> {
+        self.width
+    }
+
+    pub fn auto_color(&self) -> Option<bool> {
+        self.auto_color
+    }
+
+    pub fn line_color(&self) -> Option<Rgb> {
+        self.line_color.clone()
+    }
+
+    pub fn is_hyaline(&self) -> Option<bool> {
+        self.is_hyaline
+    }
+
+    pub fn env_version(&self) -> Option<MinappEnvVersion> {
+        self.env_version.clone()
     }
 }
 
