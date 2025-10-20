@@ -307,7 +307,8 @@ impl Client {
     ///
     /// # 示例
     /// ```ignore
-    /// use wechat_minapp::{Client, Args, Scene};
+    /// use wechat_minapp::minapp_security::{Args, Scene};
+    /// use wechant_minapp::Client;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -316,7 +317,6 @@ impl Client {
     ///     
     ///     let client = Client::new(app_id, secret);
     ///     let args = Args::builder()
-    ///         .access_token("your_access_token")
     ///         .content("需要检测的文本内容")
     ///         .scene(Scene::Comment)
     ///         .openid("user_openid")
