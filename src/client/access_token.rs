@@ -48,6 +48,15 @@ impl std::fmt::Debug for AccessTokenBuilder {
     }
 }
 
+impl AccessTokenBuilder {
+    pub fn build(self) -> AccessToken {
+        AccessToken {
+            access_token: self.access_token,
+            expired_at: self.expired_at,
+        }
+    }
+}
+
 /// 检查令牌是否过期
 ///
 /// 添加安全边界，在令牌过期前5分钟就认为需要刷新

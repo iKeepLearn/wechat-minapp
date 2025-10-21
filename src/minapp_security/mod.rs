@@ -3,7 +3,7 @@
 //! - [`msg_sec_check`][]: 文本内容安全检测。
 //!
 
-mod msg_sec_check;
+pub mod msg_sec_check;
 
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
@@ -11,7 +11,7 @@ use strum::Display;
 
 pub use msg_sec_check::{Args, MsgSecCheckResult, Scene};
 
-use crate::client::Client;
+use crate::client::WechatMinappSDK;
 
 #[derive(Debug, Deserialize_repr, Display, Serialize, PartialEq, Clone)]
 #[repr(i32)]
@@ -131,15 +131,13 @@ impl From<&str> for Suggest {
     }
 }
 
-pub struct MinappSecurity<'a> {
-    pub client: Box<&'a dyn Client>,
+pub struct MinappSecurity {
+    pub client: WechatMinappSDK,
 }
 
-impl<'a> MinappSecurity<'a> {
-    pub fn new<T: Client + 'static>(client:&'a T) -> Self {
-        MinappSecurity {
-            client: Box::new(client),
-        }
+impl MinappSecurity {
+    pub fn new(client: WechatMinappSDK) -> Self {
+        MinappSecurity { client }
     }
 }
 

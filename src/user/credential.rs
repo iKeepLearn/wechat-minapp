@@ -9,6 +9,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use cbc::Decryptor;
 use hex::encode;
 use hmac::{Hmac, Mac};
+use http::{HeaderValue, Method, Request};
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 use sha2::Sha256;
@@ -43,12 +44,12 @@ impl Credential {
     /// 解密用户数据，使用的是 AES-128-CBC 算法，数据采用PKCS#7填充。
     /// https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html
     /// ```no_run
-    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::client::WechatMinappSDK;
     /// use wechat_minapp::user::{User, Contact};
     ///
     ///  #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let client = WechatMinappSDK::new("app_id", "secret");
     ///     let user = User::new(client);
     ///     let code = "0816abc123def456";
     ///     let credential = user.login(code).await?;
@@ -130,9 +131,9 @@ impl std::fmt::Debug for CredentialBuilder {
 
 type HmacSha256 = Hmac<Sha256>;
 
-impl<'a> User<'a> {
+impl User {
     /// 检查登录态是否过期
-    /// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/checkSessionKey.html
+    /// [官方文档](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/checkSessionKey.html)
     #[instrument(skip(self, session_key, open_id))]
     pub async fn check_session_key(&self, session_key: &str, open_id: &str) -> Result<()> {
         let mut mac = HmacSha256::new_from_slice(session_key.as_bytes())?;
@@ -145,26 +146,34 @@ impl<'a> User<'a> {
         map.insert("openid", open_id.to_string());
         map.insert("signature", signature);
         map.insert("sig_method", "hmac_sha256".into());
-        let client = &self.client.inner_client().client;
-        let response = client
-            .get(constants::CHECK_SESSION_KEY_END_POINT)
-            .query(&map)
-            .send()
-            .await?;
+        let mut url = url::Url::parse(constants::CHECK_SESSION_KEY_END_POINT)?;
+        url.query_pairs_mut().extend_pairs(&map);
+        let client = &self.client.client;
+        let query = serde_json::to_vec(&map)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::GET)
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(query)?;
+
+        let response = client.execute(request).await?;
 
         debug!("response: {:#?}", response);
 
         if response.status().is_success() {
-            let response = response.json::<Response<()>>().await?;
-
-            response.extract()
+            Ok(())
         } else {
-            Err(crate::error::Error::InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(crate::error::Error::InternalServer(message))
         }
     }
 
     /// 重置用户的 session_key
-    /// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/ResetUserSessionKey.html
+    /// [官方文档](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/ResetUserSessionKey.html)
     #[instrument(skip(self, open_id))]
     pub async fn reset_session_key(&self, session_key: &str, open_id: &str) -> Result<Credential> {
         let mut mac = HmacSha256::new_from_slice(session_key.as_bytes())?;
@@ -173,30 +182,40 @@ impl<'a> User<'a> {
         let signature = encode(hasher.into_bytes());
 
         let mut map = HashMap::new();
-        let client = &self.client.inner_client().client;
         map.insert("access_token", self.client.token().await?);
         map.insert("openid", open_id.to_string());
         map.insert("signature", signature);
         map.insert("sig_method", "hmac_sha256".into());
 
-        let response = client
-            .get(constants::RESET_SESSION_KEY_END_POINT)
-            .query(&map)
-            .send()
-            .await?;
+        let mut url = url::Url::parse(constants::RESET_SESSION_KEY_END_POINT)?;
+        url.query_pairs_mut().extend_pairs(&map);
+        let client = &self.client.client;
+        let query = serde_json::to_vec(&map)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::GET)
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(query)?;
 
-        debug!("response: {:#?}", response);
+        let response = client.execute(request).await?;
+        debug!("response: {:#?}", &response);
 
         if response.status().is_success() {
-            let response = response.json::<Response<CredentialBuilder>>().await?;
+            let (_parts, body) = response.into_parts();
+            let json = serde_json::from_slice::<Response<CredentialBuilder>>(&body.to_vec())?;
 
-            let credential = response.extract()?.build();
+            let credential = json.extract()?.build();
 
             debug!("credential: {:#?}", credential);
 
             Ok(credential)
         } else {
-            Err(InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(InternalServer(message))
         }
     }
 }

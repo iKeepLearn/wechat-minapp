@@ -11,10 +11,12 @@
 //! - [`ErrorCode`]: 微信官方错误码的 Rust 枚举表示
 //!
 //!
-//! // 处理网络错误
+//! 处理网络错误
+//!
+//! ```no_run
 //! async fn make_api_request() -> Result<(), Error> {
 //!     let client = reqwest::Client::new();
-//!     let response = client.get("https://api.weixin.qq.com/some/endpoint")
+//!     let response = client.get("<https://api.weixin.qq.com/some/endpoint>")
 //!         .send()
 //!         .await?; // 自动转换为 Error::Reqwest
 //!     Ok(())
@@ -25,18 +27,20 @@
 //!
 //! 模块自动实现了从常见第三方库错误到 [`Error`] 的转换：
 //!
-//! - `reqwest::Error` → `Error::Reqwest`
-//! - `serde_json::Error` → `Error::SerdeJson`
-//! - `base64::DecodeError` → `Error::Base64Decode`
-//! - `aes::cipher::InvalidLength` → `Error::AesInvalidLength`
+//! - `reqwest::Error` → [`Error::Reqwest`]
+//! - `serde_json::Error` → [`Error::SerdeJson`]
+//! - `base64::DecodeError` → [`Error::Base64Decode`]
+//! - `aes::cipher::InvalidLength` → [`Error::AesInvalidLength`]
 //!
 //! 这使得错误处理更加方便，可以使用 `?` 操作符自动转换。
+//!
 
 use serde_repr::Deserialize_repr;
 
 use aes::cipher::InvalidLength as AesInvalidLength;
 use aes::cipher::block_padding::UnpadError;
 use base64::DecodeError as Base64DecodeError;
+use http::Error as HttpError;
 use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeJsonError;
 use strum::Display;
@@ -194,7 +198,7 @@ pub enum Error {
     #[error("base64 decode error: {0}")]
     Base64Decode(#[from] Base64DecodeError),
 
-    /// HTTP 请求错误
+    /// Reqwet 请求错误
     #[error("reqwest: {0}")]
     Reqwest(#[from] ReqwestError),
 
@@ -205,6 +209,14 @@ pub enum Error {
     /// 内部服务器错误
     #[error("internal error: {0}")]
     InternalServer(String),
+
+    /// HTTP 请求错误
+    #[error("http: {0}")]
+    Http(#[from] HttpError),
+
+    /// Url 解析错误
+    #[error("http: {0}")]
+    UrlParse(#[from] url::ParseError),
 }
 
 impl From<UnpadError> for Error {

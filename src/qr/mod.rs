@@ -1,17 +1,15 @@
 //! 微信小程序小程序码生成模块
 pub mod minapp_code;
 
-use crate::client::Client;
+use crate::client::WechatMinappSDK;
 pub use minapp_code::{MinappEnvVersion, QrCode, QrCodeArgs, Rgb};
 
-pub struct Qr<'a> {
-    pub client: Box<&'a dyn Client>,
+pub struct Qr {
+    pub client: WechatMinappSDK,
 }
 
-impl<'a> Qr<'a> {
-    pub fn new<T: Client + 'static>(client: &'a T) -> Self {
-        Qr {
-            client: Box::new(client),
-        }
+impl Qr {
+    pub fn new(client: WechatMinappSDK) -> Self {
+        Qr { client }
     }
 }

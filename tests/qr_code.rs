@@ -1,16 +1,25 @@
 use dotenv::dotenv;
 use std::env;
-use wechat_minapp::client::StableTokenClient;
+use std::sync::Arc;
+use wechat_minapp::client::{MemoryTokenStorage, StableToken};
+use wechat_minapp::client::{ReqwestHttpClient, WechatMinappSDK};
 use wechat_minapp::qr::{MinappEnvVersion, Qr, QrCodeArgs, Rgb};
 
 /// 初始化测试客户端
-fn setup_client() -> StableTokenClient {
+fn setup_client() -> WechatMinappSDK {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
-
-    StableTokenClient::new(&app_id, &secret)
+    let http_client = Arc::new(ReqwestHttpClient::new());
+    let token_type = Arc::new(StableToken::new(
+        &app_id,
+        &secret,
+        false,
+        http_client.clone(),
+    ));
+    let token_storage = Arc::new(MemoryTokenStorage::new(token_type));
+    WechatMinappSDK::custom(http_client, token_storage)
 }
 
 #[test]
@@ -44,7 +53,7 @@ fn test_qr_code_args_build_with_all_fields() {
     let args = QrCodeArgs::builder()
         .path("pages/detail/detail")
         .width(400)
-        .with_auto_color()
+        // .with_auto_color()
         .line_color(Rgb::new(0, 255, 0))
         .with_is_hyaline()
         .env_version(MinappEnvVersion::Develop)
@@ -94,12 +103,11 @@ fn test_qr_code_args_build_path_boundary() {
 #[tokio::test]
 async fn test_qr_code_with_all_parameters() {
     let client = setup_client();
-    let qr = Qr::new(&client);
+    let qr = Qr::new(client);
 
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
         .width(300)
-        .with_auto_color()
         .line_color(Rgb::new(255, 0, 0))
         .with_is_hyaline()
         .env_version(MinappEnvVersion::Release)
@@ -110,13 +118,16 @@ async fn test_qr_code_with_all_parameters() {
 
     assert!(result.is_ok());
     let qr_code = result.unwrap();
+    tokio::fs::write("test_qr_code_with_all_parameters.png", qr_code.buffer())
+        .await
+        .expect("写入文件失败");
     assert!(!qr_code.buffer().is_empty());
 }
 
 #[tokio::test]
 async fn test_qr_code_with_only_width() {
     let client = setup_client();
-    let qr = Qr::new(&client);
+    let qr = Qr::new(client);
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
         .width(200)
@@ -124,14 +135,18 @@ async fn test_qr_code_with_only_width() {
         .unwrap();
 
     let result = qr.qr_code(args).await;
-
     assert!(result.is_ok());
+    let qr_code = result.unwrap();
+    tokio::fs::write("test_qr_code_with_only_width.png", qr_code.buffer())
+        .await
+        .expect("写入文件失败");
+    assert!(!qr_code.buffer().is_empty());
 }
 
 #[tokio::test]
 async fn test_qr_code_with_only_env_version() {
     let client = setup_client();
-    let qr = Qr::new(&client);
+    let qr = Qr::new(client);
     let args = QrCodeArgs::builder()
         .path("pages/index/index")
         .env_version(MinappEnvVersion::Develop)
@@ -139,6 +154,10 @@ async fn test_qr_code_with_only_env_version() {
         .unwrap();
 
     let result = qr.qr_code(args).await;
-
     assert!(result.is_ok());
+    let qr_code = result.unwrap();
+    tokio::fs::write("test_qr_code_with_only_env_version.png", qr_code.buffer())
+        .await
+        .expect("写入文件失败");
+    assert!(!qr_code.buffer().is_empty());
 }

@@ -21,12 +21,12 @@
 //! # 快速开始
 //!
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinappSDK;
 //! use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = StableTokenClient::new("app_id", "secret");
+//!     let client = WechatMinappSDK::new("app_id", "secret");
 //!     let security = MinappSecurity::new(client);
 //!     
 //!     let args = Args::builder()
@@ -51,7 +51,8 @@
 
 use super::{Label, MinappSecurity, Suggest};
 use crate::{Result, constants, error::Error};
-use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
+use http::header::{CONTENT_TYPE, HeaderValue};
+use http::{Method, Request};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
@@ -458,7 +459,7 @@ impl MsgSecCheckResult {
     }
 }
 
-impl<'a> MinappSecurity<'a> {
+impl MinappSecurity {
     /// 内容安全检测
     ///
     /// 对文本内容进行安全检测，识别违规内容。
@@ -480,12 +481,12 @@ impl<'a> MinappSecurity<'a> {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::client::WechatMinappSDK;
     /// use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = Client::new("app_id", "secret");
+    ///     let client = WechatMinappSDK::new("app_id", "secret");
     ///     let security = MinappSecurity::new(client);
     ///     let args = Args::builder()
     ///         .content("需要检测的文本内容")
@@ -514,14 +515,14 @@ impl<'a> MinappSecurity<'a> {
 
         // 验证参数
         args.validate()?;
-        let client = &self.client.inner_client().client;
-        let access_token = &self.client.token().await?;
-        let mut query = HashMap::new();
+        let token = format!("access_token={}", self.client.token().await?);
+        let mut url = url::Url::parse(constants::MSG_SEC_CHECK_END_POINT)?;
+        url.set_query(Some(&token));
+
         let mut body = HashMap::new();
         let version = args.version.to_string();
         let scene = (args.scene as u32).to_string();
         // URL 参数：access_token
-        query.insert("access_token", &access_token);
 
         // Body 参数
         body.insert("content", &args.content);
@@ -541,37 +542,33 @@ impl<'a> MinappSecurity<'a> {
             body.insert("signature", signature);
         }
 
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        let client = &self.client.client;
+        let req_body = serde_json::to_vec(&body)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::POST)
+            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(req_body)?;
 
-        let response = client
-            .post(constants::MSG_SEC_CHECK_END_POINT)
-            .headers(headers)
-            .query(&query)
-            .json(&body)
-            .send()
-            .await?;
+        let response = client.execute(request).await?;
 
-        debug!("msg_sec_check response: {:#?}", response);
+        debug!("response: {:#?}", response);
 
         if response.status().is_success() {
-            let response_text = response.text().await?;
-            debug!("msg_sec_check response body: {}", response_text);
+            let (_parts, body) = response.into_parts();
+            let json = serde_json::from_slice::<MsgSecCheckResult>(&body.to_vec())?;
 
-            let result: MsgSecCheckResult = serde_json::from_str(&response_text)?;
+            debug!("msg_sec_check result: {:#?}", json);
 
-            if result.is_success() {
-                Ok(result)
-            } else {
-                // 微信API返回错误
-                Err(Error::InternalServer(format!(
-                    "微信内容安全检测API错误: {} - {}",
-                    result.errcode, result.errmsg
-                )))
-            }
+            Ok(json)
         } else {
-            // HTTP 请求错误
-            Err(Error::InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(Error::InternalServer(message))
         }
     }
 }

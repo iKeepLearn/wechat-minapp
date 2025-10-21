@@ -81,3 +81,7 @@ pub const QR_CODE_ENDPOINT: &str = "https://api.weixin.qq.com/wxa/getwxacode";
 ///
 /// [文本安全检测](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/sec-center/sec-check/msgSecCheck.html)
 pub const MSG_SEC_CHECK_END_POINT: &str = "https://api.weixin.qq.com/wxa/msg_sec_check";
+
+/// HTTP 客户端的 User-Agent 字符串
+pub const HTTP_CLIENT_USER_AGENT: &str =
+    "wechat-minapp/2.2.0 (A rust sdk for wechat miniprogram server api)";

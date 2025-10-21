@@ -4,6 +4,7 @@ use crate::{
     Result, constants, error::Error::InternalServer, response::Response,
     user::credential::CredentialBuilder,
 };
+use http::{HeaderValue, Method, Request};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, instrument};
@@ -16,12 +17,12 @@ use tracing::{debug, instrument};
 /// # 示例
 ///
 /// ```no_run
-/// use wechat_minapp::client::StableTokenClient;
+/// use wechat_minapp::client::WechatMinappSDK;
 /// use wechat_minapp::user::{User, Contact};
 ///
 ///  #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let client = StableTokenClient::new("app_id", "secret");
+///     let client = WechatMinappSDK::new("app_id", "secret");
 ///     let user = User::new(client);
 ///     let code = "0816abc123def456";
 ///     let credential = user.login(code).await?;
@@ -201,7 +202,7 @@ impl WatermarkBuilder {
     }
 }
 
-impl<'a> User<'a> {
+impl User {
     /// 用户登录凭证校验
     ///
     /// 通过微信前端获取的临时登录凭证 code，换取用户的唯一标识 OpenID 和会话密钥。
@@ -223,12 +224,12 @@ impl<'a> User<'a> {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::client::WechatMinappSDK;
     /// use wechat_minapp::user::{User, Contact};
     ///
     ///  #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let client = WechatMinappSDK::new("app_id", "secret");
     ///     let user = User::new(client);
     ///     let code = "0816abc123def456";
     ///     let credential = user.login(code).await?;
@@ -247,31 +248,42 @@ impl<'a> User<'a> {
         debug!("code: {}", code);
 
         let mut map: HashMap<&str, &str> = HashMap::new();
-        let inner = self.client.inner_client();
-        map.insert("appid", &inner.app_id);
-        map.insert("secret", &inner.secret);
+        let config = self.client.app_config();
+        map.insert("appid", &config.app_id);
+        map.insert("secret", &config.secret);
         map.insert("js_code", code);
         map.insert("grant_type", "authorization_code");
 
-        let response = inner
-            .client
-            .get(constants::AUTHENTICATION_END_POINT)
-            .query(&map)
-            .send()
-            .await?;
+        let mut url = url::Url::parse(constants::AUTHENTICATION_END_POINT)?;
+        url.query_pairs_mut().extend_pairs(&map);
+        
+        let client = &self.client.client;
+        let query = serde_json::to_vec(&map)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::GET)
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(query)?;
 
-        debug!("authentication response: {:#?}", response);
+        let response = client.execute(request).await?;
+        debug!("authentication response: {:#?}", &response);
 
         if response.status().is_success() {
-            let response = response.json::<Response<CredentialBuilder>>().await?;
+            let (_parts, body) = response.into_parts();
+            let json = serde_json::from_slice::<Response<CredentialBuilder>>(&body.to_vec())?;
 
-            let credential = response.extract()?.build();
+            let credential = json.extract()?.build();
 
             debug!("credential: {:#?}", credential);
 
             Ok(credential)
         } else {
-            Err(InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(InternalServer(message))
         }
     }
 
@@ -297,12 +309,12 @@ impl<'a> User<'a> {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::client::WechatMinappSDK;
     /// use wechat_minapp::user::{User, Contact};
     ///
     ///  #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = StableTokenClient::new("app_id", "secret");
+    ///     let client = WechatMinappSDK::new("app_id", "secret");
     ///     let user = User::new(client);
     ///     let code = "0816abc123def456";
     ///     let contact = user.get_contact(code, None).await?;
@@ -332,36 +344,44 @@ impl<'a> User<'a> {
     /// [获取手机号](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-info/phone-number/getPhoneNumber.html)
     pub async fn get_contact(&self, code: &str, open_id: Option<&str>) -> Result<Contact> {
         debug!("code: {}, open_id: {:?}", code, open_id);
+        let token = format!("access_token={}", self.client.token().await?);
+        let mut url = url::Url::parse(constants::PHONE_END_POINT)?;
+        url.set_query(Some(&token));
 
-        let mut query = HashMap::new();
         let mut body = HashMap::new();
-        let client = &self.client.inner_client().client;
-        query.insert("access_token", self.client.token().await?);
         body.insert("code", code);
 
         if let Some(open_id) = open_id {
             body.insert("openid", open_id);
         }
 
-        let response = client
-            .post(constants::PHONE_END_POINT)
-            .query(&query)
-            .json(&body)
-            .send()
-            .await?;
+        let client = &self.client.client;
+        let query = serde_json::to_vec(&body)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::POST)
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(query)?;
 
-        debug!("response: {:#?}", response);
+        let response = client.execute(request).await?;
+        debug!("authentication response: {:#?}", &response);
 
         if response.status().is_success() {
-            let response = response.json::<Response<ContactBuilder>>().await?;
+            let (_parts, body) = response.into_parts();
+            let json = serde_json::from_slice::<Response<ContactBuilder>>(&body.to_vec())?;
 
-            let builder = response.extract()?;
+            let builder = json.extract()?;
 
             debug!("contact builder: {:#?}", builder);
 
             Ok(builder.build())
         } else {
-            Err(InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(InternalServer(message))
         }
     }
 }

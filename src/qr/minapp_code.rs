@@ -136,7 +136,8 @@ use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
 };
-use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
+use http::header::{CONTENT_TYPE, HeaderValue};
+use http::{Method, Request};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
@@ -148,7 +149,7 @@ use tracing::debug;
 /// # 示例
 ///
 /// ```no_run
-/// use wechat_minapp::client::StableTokenClient;
+/// use wechat_minapp::client::WechatMinappSDK;
 /// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 ///
 /// #[tokio::main]
@@ -156,7 +157,7 @@ use tracing::debug;
 ///     // 初始化客户端
 ///     let app_id = "your_app_id";
 ///     let secret = "your_app_secret";
-///     let client = StableTokenClient::new(app_id, secret);
+///     let client = WechatMinappSDK::new(app_id, secret);
 ///     let qr = Qr::new(client);
 ///
 ///     let args = QrCodeArgs::builder()
@@ -387,6 +388,12 @@ impl QrCodeArgBuilder {
             },
         )?;
 
+        if self.auto_color.is_some() && self.line_color.is_some() {
+            return Err(Error::InvalidParameter(
+                "auto_color 为 true 时，line_color 不能设置".to_string(),
+            ));
+        }
+
         Ok(QrCodeArgs {
             path,
             width: self.width,
@@ -398,7 +405,7 @@ impl QrCodeArgBuilder {
     }
 }
 
-impl<'a> Qr<'a> {
+impl Qr {
     /// 生成小程序二维码
     ///
     /// 调用微信小程序二维码生成接口，返回包含二维码图片数据的 [`QrCode`] 对象。
@@ -414,7 +421,7 @@ impl<'a> Qr<'a> {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::client::StableTokenClient;
+    /// use wechat_minapp::client::WechatMinappSDK;
     /// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
     ///
     /// #[tokio::main]
@@ -422,7 +429,7 @@ impl<'a> Qr<'a> {
     ///     // 初始化客户端
     ///     let app_id = "your_app_id";
     ///     let secret = "your_app_secret";
-    ///     let client = StableTokenClient::new(app_id, secret);
+    ///     let client = WechatMinappSDK::new(app_id, secret);
     ///     let qr = Qr::new(client);
     ///
     ///     // 构建小程序码参数
@@ -454,11 +461,12 @@ impl<'a> Qr<'a> {
     /// - 参数序列化错误
     pub async fn qr_code(&self, args: QrCodeArgs) -> Result<QrCode> {
         debug!("get qr code args {:?}", &args);
+        let token = format!("access_token={}", self.client.token().await?);
+        let mut url = url::Url::parse(constants::QR_CODE_ENDPOINT)?;
+        url.set_query(Some(&token));
 
-        let mut query = HashMap::new();
         let mut body = HashMap::new();
-        let client = &self.client.inner_client().client;
-        query.insert("access_token", self.client.token().await?);
+
         body.insert("path", args.path);
 
         if let Some(width) = args.width {
@@ -482,28 +490,31 @@ impl<'a> Qr<'a> {
             body.insert("env_version", env_version.into());
         }
 
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert("encoding", HeaderValue::from_static("null"));
+        let client = &self.client.client;
+        let req_body = serde_json::to_vec(&body)?;
+        let request = Request::builder()
+            .uri(url.as_str())
+            .method(Method::POST)
+            .header("encoding", HeaderValue::from_static("null"))
+            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
+            .header(
+                "User-Agent",
+                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
+            )
+            .body(req_body)?;
 
-        let response = client
-            .post(constants::QR_CODE_ENDPOINT)
-            .headers(headers)
-            .query(&query)
-            .json(&body)
-            .send()
-            .await?;
+        let response = client.execute(request).await?;
 
         debug!("response: {:#?}", response);
 
         if response.status().is_success() {
-            let response = response.bytes().await?;
-
             Ok(QrCode {
-                buffer: response.to_vec(),
+                buffer: response.into_body(),
             })
         } else {
-            Err(InternalServer(response.text().await?))
+            let (_parts, body) = response.into_parts();
+            let message = String::from_utf8_lossy(&body).to_string();
+            Err(InternalServer(message))
         }
     }
 }

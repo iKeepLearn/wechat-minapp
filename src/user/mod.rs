@@ -5,12 +5,12 @@
 //! # 登录信息
 //!
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinappSDK;
 //! use wechat_minapp::user::{User, Contact};
 //!
 //!  #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = StableTokenClient::new("app_id", "secret");
+//!     let client = WechatMinappSDK::new("app_id", "secret");
 //!     let user = User::new(client);
 //!     let code = "0816abc123def456";
 //!     let credential = user.login(code).await?;
@@ -24,12 +24,12 @@
 //!
 //! 解析用户基本信息（需要前端传递加密数据）
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinappSDK;
 //! use wechat_minapp::user::{User, Contact};
 //!
 //!  #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = StableTokenClient::new("app_id", "secret");
+//!     let client = WechatMinappSDK::new("app_id", "secret");
 //!     let user = User::new(client);
 //!     let code = "0816abc123def456";
 //!     let credential = user.login(code).await?;
@@ -47,12 +47,12 @@
 //!
 //!  获取用户手机号
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinappSDK;
 //! use wechat_minapp::user::{User, Contact};
 //!
 //!  #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = StableTokenClient::new("app_id", "secret");
+//!     let client = WechatMinappSDK::new("app_id", "secret");
 //!     let user = User::new(client);
 //!     let code = "0816abc123def456";
 //!     let contact = user.get_contact(code, None).await?;
@@ -65,16 +65,14 @@
 //!
 mod credential;
 mod user_info;
-use crate::client::Client;
+use crate::client::WechatMinappSDK;
 
-pub struct User<'a> {
-    pub client: Box<&'a dyn Client>,
+pub struct User {
+    pub client: WechatMinappSDK,
 }
 
-impl<'a> User<'a> {
-    pub fn new<T: Client + 'static>(client: &'a T) -> Self {
-        User {
-            client: Box::new(client),
-        }
+impl User {
+    pub fn new(client: WechatMinappSDK) -> Self {
+        User { client }
     }
 }
