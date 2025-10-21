@@ -55,14 +55,10 @@
 //! ```
 //!
 mod access_token;
-mod non_stable_token;
-mod stable_token;
 mod token_storage;
 pub mod token_type;
 
 pub use access_token::AccessToken;
-pub use non_stable_token::NonStableTokenClient;
-pub use stable_token::StableTokenClient;
 pub use token_storage::{MemoryTokenStorage, TokenStorage};
 pub use token_type::{NonStableToken, StableToken};
 
@@ -78,24 +74,10 @@ pub struct AppConfig {
     pub secret: String,
 }
 
-/// 旧版客户端特性的定义。
-#[async_trait]
-pub trait Client: Send + Sync {
-    async fn token(&self) -> Result<String>;
-    fn inner_client(&self) -> &ClientInner;
-}
-
-#[derive(Debug, Clone)]
-pub struct ClientInner {
-    pub app_id: String,
-    pub secret: String,
-    pub client: reqwest::Client,
-}
-
 /// 微信小程序 SDK 主客户端结构。
 ///
 /// 封装了 `HttpClient` 和 `TokenStorage`，提供发送请求和获取 Access Token 的方法。
-/// 
+///
 pub struct WechatMinappSDK {
     pub client: Arc<dyn HttpClient>,
     pub token_storage: Arc<dyn TokenStorage>,

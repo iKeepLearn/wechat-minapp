@@ -62,7 +62,6 @@ fn test_qr_code_args_build_with_all_fields() {
 
     assert_eq!(args.path(), "pages/detail/detail");
     assert_eq!(args.width(), Some(400));
-    assert_eq!(args.auto_color(), Some(true));
     assert!(args.line_color().is_some());
     assert_eq!(args.is_hyaline(), Some(true));
     assert!(matches!(

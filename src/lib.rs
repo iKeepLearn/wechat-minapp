@@ -16,7 +16,7 @@
 //! ## 默认客户端和存储方式
 //! ```no_run
 //! use wechat_minapp::client::WechatMinappSDK;
-//! let client = WeChatMinAppClient::new("your_app_id", "your_app_secret");
+//! let client = WechatMinappSDK::new("your_app_id", "your_app_secret");
 //! ```   
 //!
 //! ## 自定义 HTTP 客户端和存储方式
