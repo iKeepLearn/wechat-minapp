@@ -8,9 +8,8 @@ A rust sdk for wechat miniprogram server api
 
 首先感谢 headironc 的项目，之所以重新发一包，而不是 pr 是因为我改了很多结构，现在 wechat-minapp 的调用方式出现了很大的不同。
 
-[1.x 版本](https://github.com/ikeeplearn/wechat-minapp-v1)
 
-[`actix web + 小程序端 完整示例`](https://github.com/ikeeplearn/wechat-minapp/tree/master/examples)
+[actix web + 小程序端 完整示例](https://github.com/ikeeplearn/wechat-minapp/tree/master/examples)
 
 ## 功能
 

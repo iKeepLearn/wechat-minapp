@@ -19,7 +19,7 @@ pub enum PagePathError {
     ContainsParams,
     /// 路径格式不正确
     InvalidFormat,
-    /// 路径字数超过 1024 个字符
+    /// 页面路径最大长度 1024 个字符
     InvalidLength,
     /// 页面路径包含系统保留参数 'scancode_time'
     ReservedParameter,
@@ -48,7 +48,7 @@ impl fmt::Display for PagePathError {
                 write!(f, "页面路径不能携带参数，参数请放在scene字段里")
             }
             PagePathError::InvalidFormat => write!(f, "页面路径格式不正确"),
-            PagePathError::InvalidLength => write!(f, "路径字数超过 1024 个字符"),
+            PagePathError::InvalidLength => write!(f, "页面路径最大长度 1024 个字符"),
             PagePathError::Empty => write!(f, "页面路径不能为空"),
             PagePathError::ReservedParameter => {
                 write!(f, "页面路径包含系统保留参数 'scancode_time'")

@@ -8,7 +8,7 @@
 //!
 //!
 pub mod minapp_code;
-mod unlimited_minapp_code;
+pub mod unlimited_minapp_code;
 
 use crate::client::WechatMinappSDK;
 pub use minapp_code::{MinappEnvVersion, QrCode, QrCodeArgs, Rgb};
