@@ -61,10 +61,12 @@ pub mod token_type;
 pub use access_token::AccessToken;
 pub use token_storage::{MemoryTokenStorage, TokenStorage};
 pub use token_type::{NonStableToken, StableToken};
+pub type WechatMinapp = WechatMinappSDK;
 
 use crate::Result;
 use async_trait::async_trait;
 use http::{Request, Response};
+use reqwest::Request as ReqwestRequest;
 use std::{fmt, sync::Arc};
 
 /// 微信小程序的 App ID 和 Secret 配置。
@@ -181,10 +183,10 @@ impl HttpClient for ReqwestHttpClient {
     /// 使用 `reqwest` 执行请求，并将 `http::Request` 转换为 `reqwest::Request`，
     /// 再将 `reqwest::Response` 转换为 `http::Response`。
     async fn execute(&self, req: Request<Vec<u8>>) -> Result<Response<Vec<u8>>> {
-        let reqwest_req = req.try_into()?;
-
+        let reqwest_req: ReqwestRequest = req.try_into()?;
+        
         let reqwest_res = self.client.execute(reqwest_req).await?;
-
+        
         let status = reqwest_res.status();
         let version = reqwest_res.version();
         let headers = reqwest_res.headers().clone();

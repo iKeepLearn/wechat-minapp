@@ -29,6 +29,9 @@
 //!
 //! 这些端点对应微信小程序最新的 API 版本，会随着微信官方 API 的更新而维护。
 
+/// wechat-minapp crate 当前版本
+pub const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// 获取稳定版访问令牌的 API 端点
 /// # 官方文档
 ///
@@ -84,4 +87,11 @@ pub const MSG_SEC_CHECK_END_POINT: &str = "https://api.weixin.qq.com/wxa/msg_sec
 
 /// HTTP 客户端的 User-Agent 字符串
 pub const HTTP_CLIENT_USER_AGENT: &str =
-    "wechat-minapp/2.2.0 (A rust sdk for wechat miniprogram server api)";
+    "wechat-minapp/3.1.0 (A rust sdk for wechat miniprogram server api)";
+
+/// 获取 ShortLink 的 API 端点
+///
+/// # 官方文档
+///
+/// [获取 ShortLink](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/short-link/generateShortLink.html)
+pub const SHORT_LINK_END_POINT: &str = "https://api.weixin.qq.com/wxa/genwxashortlink";

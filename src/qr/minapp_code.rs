@@ -12,7 +12,7 @@
 //! # 快速开始
 //!
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinapp;
 //! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
@@ -20,7 +20,7 @@
 //!     // 初始化客户端
 //!     let app_id = "your_app_id";
 //!     let secret = "your_app_secret";
-//!     let client = StableTokenClient::new(app_id, secret);
+//!     let client = WechatMinapp::new(app_id, secret);
 //!     let qr = Qr::new(client);
 //!
 //!     // 构建小程序码参数
@@ -65,7 +65,7 @@
 //! ## 生成带颜色的小程序码
 //!
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinapp;
 //! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
@@ -73,7 +73,7 @@
 //!     // 初始化客户端
 //!     let app_id = "your_app_id";
 //!     let secret = "your_app_secret";
-//!     let client = StableTokenClient::new(app_id, secret);
+//!     let client = WechatMinapp::new(app_id, secret);
 //!     let qr = Qr::new(client);
 //!
 //!     let args = QrCodeArgs::builder()
@@ -96,7 +96,7 @@
 //! ## 生成简单小程序码
 //!
 //! ```no_run
-//! use wechat_minapp::client::StableTokenClient;
+//! use wechat_minapp::client::WechatMinapp;
 //! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
@@ -104,7 +104,7 @@
 //!     // 初始化客户端
 //!     let app_id = "your_app_id";
 //!     let secret = "your_app_secret";
-//!     let client = StableTokenClient::new(app_id, secret);
+//!     let client = WechatMinapp::new(app_id, secret);
 //!     let qr = Qr::new(client);
 //!
 //!     let args = QrCodeArgs::builder()

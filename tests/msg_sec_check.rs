@@ -10,7 +10,7 @@ fn setup_client() -> WechatMinappSDK {
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
     let secret = env::var("WECHAT_APP_SECRET").expect("请设置 WECHAT_APP_SECRET 环境变量");
 
-   WechatMinappSDK::new(&app_id, &secret)
+    WechatMinappSDK::new(&app_id, &secret)
 }
 
 /// 获取测试用的用户openid

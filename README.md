@@ -8,14 +8,25 @@ A rust sdk for wechat miniprogram server api
 
 首先感谢 headironc 的项目，之所以重新发一包，而不是 pr 是因为我改了很多结构，现在 wechat-minapp 的调用方式出现了很大的不同。
 
-1.x 版本的说明请切换到 v1 分支查看
+[1.x 版本的说明请切换到 v1 分支查看](https:://crates.io/crates/wechat-minapp-v1)
+
+## 功能
+
+- 获取访问令牌
+- 用户登录凭证校验
+- 解析用户信息
+- 获取用户手机号
+- 生成小程序码
+- 内容安全检测  
+- 生成小程序链接
 
 ## 用法
 
 ### 获取 access token
 
 ```rust
-use  wechat_minapp::client::{WechatMinappSDK, NonStableToken, MemoryTokenStorage, ReqwestHttpClient};
+use  wechat_minapp::client::{WechatMinappSDK, 
+NonStableToken, MemoryTokenStorage, ReqwestHttpClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -202,6 +213,49 @@ let args = Args::builder()
     } else {
         println!("内容有风险，建议修改");
     }
+    
+    Ok(web::Json(result))
+}
+
+```
+
+
+### 生成电商短链接
+
+```rust
+use wechat_minapp::link::{Link, ShortLinkArgs};
+use wechat_minapp::client::WechatMinappSDK;
+use crate::{Error, state::AppState};
+use actix_web::{Responder, web};
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize,Serialize)]
+pub struct ShortLinkDto {
+    page_url: String,
+    page_title: Option<String>,
+    is_permanent:Option<bool>
+}
+
+pub async fn get_user_qr(
+    state: web::Data<AppState>,
+    date:web::Json<ShortLinkDto>
+) -> Result<impl Responder, Error> {
+
+    let args = ShortLinkArgs::builder().path(date.page_url);
+    
+    if let Some(page_title)=data.page_title{
+     let args = args.page_title(page_title);
+    }
+    
+    if let Some(is_permanent)=data.is_permanent{
+     let args = args.with_permanent(is_permanent);
+    }
+   
+    
+    let args = args.build()?;
+
+    let link = Link::new(state.client);
+    let result = lik.short_link(args).await?;
     
     Ok(web::Json(result))
 }

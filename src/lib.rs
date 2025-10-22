@@ -44,14 +44,17 @@
 //! - 获取用户手机号
 //! - 生成小程序码
 //! - 内容安全检测  
+//! - 生成小程序链接
 //!         
 //!     
+
+mod response;
 
 pub mod client;
 pub mod constants;
 pub mod error;
 pub mod minapp_security;
 pub mod qr;
-mod response;
 pub mod user;
+pub mod link;
 pub type Result<T> = std::result::Result<T, error::Error>;

@@ -1,7 +1,7 @@
 //! 接口调用凭据存储读取模块
 //! 默认使用内存Arc结构,可参考实现读取保存方式，比如 redis、postgresql、mysql 等。
-//! 
-//! 
+//!
+//!
 
 use super::access_token::{AccessToken, is_token_expired};
 use super::token_type::TokenType;
@@ -14,7 +14,6 @@ use std::sync::{
 };
 use tokio::sync::{Notify, RwLock};
 use tracing::debug;
-
 
 /// 定义接口调用凭据读取存储的行为
 #[async_trait]
@@ -45,7 +44,6 @@ impl MemoryTokenStorage {
         }
     }
 }
-
 
 /// 内存存储方式的接口调用凭据存储读取实现
 #[async_trait]

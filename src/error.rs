@@ -234,6 +234,7 @@ impl From<UnpadError> for Error {
 ///
 /// 完整的错误码列表请参考：
 /// [微信官方文档 - 全局返回码说明](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/#%E5%85%A8%E5%B1%80%E8%BF%94%E5%9B%9E%E7%A0%81%E8%AF%B4%E6%98%8E)
+#[non_exhaustive]
 #[derive(Debug, Deserialize_repr, Display)]
 #[repr(i32)]
 pub enum ErrorCode {
@@ -294,6 +295,16 @@ pub enum ErrorCode {
         serialize = "该IP调用求请求已被公众号管理员拒绝，请1小时后再试，建议调用前与管理员沟通确认"
     )]
     RequestDeniedOneHour = 89507,
+    #[strum(serialize = "url不存在，即，已发布小程序没有对应url")]
+    InvalidUrl = 40066,
+    #[strum(serialize = "无效的页面标题")]
+    InvalidPageTitle = 40225,
+    #[strum(serialize = "长期有效Scheme或short link达到生成上限10万，不可再生成。")]
+    ReachMaxLongTimeQuotaLimit = 85400,
+    #[strum(
+        serialize = "没有调用权限，目前只开放给电商类目（具体包含以下一级类目：电商平台、商家自营、跨境电商）"
+    )]
+    NotHavePermission = 43104,
 }
 
 impl From<(ErrorCode, String)> for Error {
@@ -336,6 +347,7 @@ impl From<(ErrorCode, String)> for Error {
             ConfirmRequired => Error::ConfirmRequired(message),
             RequestDeniedOneDay => Error::RequestDeniedOneDay(message),
             RequestDeniedOneHour => Error::RequestDeniedOneHour(message),
+            _ => Error::InvalidParameter(message),
         }
     }
 }

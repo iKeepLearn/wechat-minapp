@@ -2,11 +2,11 @@ use dotenv::dotenv;
 use std::env;
 use std::sync::Arc;
 use wechat_minapp::client::{MemoryTokenStorage, StableToken};
-use wechat_minapp::client::{ReqwestHttpClient, WechatMinappSDK};
+use wechat_minapp::client::{ReqwestHttpClient, WechatMinapp};
 use wechat_minapp::qr::{MinappEnvVersion, Qr, QrCodeArgs, Rgb};
 
 /// 初始化测试客户端
-fn setup_client() -> WechatMinappSDK {
+fn setup_client() -> WechatMinapp {
     dotenv().ok();
 
     let app_id = env::var("WECHAT_APP_ID").expect("请设置 WECHAT_APP_ID 环境变量");
@@ -19,7 +19,7 @@ fn setup_client() -> WechatMinappSDK {
         http_client.clone(),
     ));
     let token_storage = Arc::new(MemoryTokenStorage::new(token_type));
-    WechatMinappSDK::custom(http_client, token_storage)
+    WechatMinapp::custom(http_client, token_storage)
 }
 
 #[test]

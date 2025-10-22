@@ -256,7 +256,7 @@ impl User {
 
         let mut url = url::Url::parse(constants::AUTHENTICATION_END_POINT)?;
         url.query_pairs_mut().extend_pairs(&map);
-        
+
         let client = &self.client.client;
         let query = serde_json::to_vec(&map)?;
         let request = Request::builder()
