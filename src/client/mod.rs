@@ -184,9 +184,9 @@ impl HttpClient for ReqwestHttpClient {
     /// 再将 `reqwest::Response` 转换为 `http::Response`。
     async fn execute(&self, req: Request<Vec<u8>>) -> Result<Response<Vec<u8>>> {
         let reqwest_req: ReqwestRequest = req.try_into()?;
-        
+
         let reqwest_res = self.client.execute(reqwest_req).await?;
-        
+
         let status = reqwest_res.status();
         let version = reqwest_res.version();
         let headers = reqwest_res.headers().clone();

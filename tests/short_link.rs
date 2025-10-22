@@ -47,7 +47,7 @@ fn test_short_link_args_build_with_all_fields() {
 }
 
 #[test]
-fn test_qr_code_args_build_missing_path() {
+fn test_short_link_args_build_missing_path() {
     let result = ShortLinkArgs::builder().build();
     assert!(result.is_err());
 
@@ -57,7 +57,7 @@ fn test_qr_code_args_build_missing_path() {
 }
 
 #[test]
-fn test_qr_code_args_build_path_too_long() {
+fn test_short_link_args_build_path_too_long() {
     let long_path = "a".repeat(1025);
     let result = ShortLinkArgs::builder().path(long_path).build();
     assert!(result.is_err());
@@ -68,7 +68,7 @@ fn test_qr_code_args_build_path_too_long() {
 }
 
 #[test]
-fn test_qr_code_args_build_path_boundary() {
+fn test_short_link_args_build_path_boundary() {
     // 测试边界情况：正好 1024 个字符
     let boundary_path = "a".repeat(1024);
     let result = ShortLinkArgs::builder().path(boundary_path).build();

@@ -1,5 +1,7 @@
 //! 微信小程序服务端常用接口的 RUST SDK
-
+//!
+//! [`actix web + 小程序端 完整示例`](https://github.com/ikeeplearn/wechat-minapp/tree/master/examples)
+//!
 //! # 功能
 //!
 //! - 获取访问令牌
@@ -45,16 +47,18 @@
 //! let client = WechatMinappSDK::custom(http_client, token_storage)
 //!
 //! ```
-//! [`actix web + 小程序端 完整示例`](https://github.com/ikeeplearn/wechat-minapp/tree/master/examples)
-//! 
+//!
+//!
 
 mod response;
+mod utils;
 
 pub mod client;
 pub mod constants;
 pub mod error;
+pub mod link;
 pub mod minapp_security;
+pub mod new_type;
 pub mod qr;
 pub mod user;
-pub mod link;
 pub type Result<T> = std::result::Result<T, error::Error>;

@@ -95,3 +95,13 @@ pub const HTTP_CLIENT_USER_AGENT: &str =
 ///
 /// [获取 ShortLink](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/short-link/generateShortLink.html)
 pub const SHORT_LINK_END_POINT: &str = "https://api.weixin.qq.com/wxa/genwxashortlink";
+
+/// 生成小程序无限制小程序码的 API 端点
+///
+/// # 官方文档
+///
+/// [获取无限制小程序码](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html)
+pub const UNLIMITIED_QR_CODE_ENDPOINT: &str = "https://api.weixin.qq.com/wxa/getwxacodeunlimit";
+
+/// base url
+pub const END_POINT_BASE_URL: &str = "https://api.weixin.qq.com";

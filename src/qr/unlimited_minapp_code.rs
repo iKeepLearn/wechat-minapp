@@ -13,7 +13,7 @@
 //!
 //! ```no_run
 //! use wechat_minapp::client::WechatMinapp;
-//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
+//! use wechat_minapp::qr::{UnlimitedQrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,14 +24,15 @@
 //!     let qr = Qr::new(client);
 //!
 //!     // 构建小程序码参数
-//!     let args = QrCodeArgs::builder()
-//!         .path("pages/index/index")
+//!     let args = UnlimitedQrCodeArgs::builder()
+//!         .page("pages/index/index")
+//!         .scene("a=1")
 //!         .width(300)
 //!         .env_version(MinappEnvVersion::Release)
 //!         .build()?;
 //!
 //!     // 生成小程序码
-//!     let qr_code = qr.qr_code(args).await?;
+//!     let qr_code = qr.unlimited_qr_code(args).await?;
 //!     
 //!     // 获取小程序码图片数据
 //!     let buffer = qr_code.buffer();
@@ -53,20 +54,13 @@
 //! - `is_hyaline`: 是否透明背景
 //! - `env_version`: 环境版本，默认为正式版
 //!
-//! # 注意事项
-//!
-//! - 生成的小程序码永不过期，数量不限
-//! - 接口只能生成已发布的小程序的小程序码
-//! - 支持带参数路径，如 `pages/index/index?param=value`
-//! - 小程序码大小限制为 128KB，请合理设置 width 参数
-//!
 //! # 示例
 //!
 //! ## 生成带颜色的小程序码
 //!
 //! ```no_run
 //! use wechat_minapp::client::WechatMinapp;
-//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
+//! use wechat_minapp::qr::{UnlimitedQrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -76,8 +70,9 @@
 //!     let client = WechatMinapp::new(app_id, secret);
 //!     let qr = Qr::new(client);
 //!
-//!     let args = QrCodeArgs::builder()
-//!     .path("pages/detail/detail?id=123")
+//!     let args = UnlimitedQrCodeArgs::builder()
+//!     .page("pages/detail/detail")
+//!     .scene("id=123")
 //!     .width(400)
 //!     .line_color(Rgb::new(255, 0, 0)) // 红色线条
 //!     .with_is_hyaline() // 透明背景
@@ -85,7 +80,7 @@
 //!     .build()
 //!     .unwrap();
 //!     // 生成小程序码
-//!     let qr_code = qr.qr_code(args).await?;
+//!     let qr_code = qr.unlimited_qr_code(args).await?;
 //!     
 //!     // 获取小程序码图片数据
 //!     let buffer = qr_code.buffer();
@@ -97,7 +92,7 @@
 //!
 //! ```no_run
 //! use wechat_minapp::client::WechatMinapp;
-//! use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
+//! use wechat_minapp::qr::{UnlimitedQrCodeArgs,Qr, MinappEnvVersion};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -107,12 +102,12 @@
 //!     let client = WechatMinapp::new(app_id, secret);
 //!     let qr = Qr::new(client);
 //!
-//!     let args = QrCodeArgs::builder()
-//!     .path("pages/index/index")
+//!     let args = UnlimitedQrCodeArgs::builder()
+//!     .page("pages/index/index")
 //!     .build()
 //!     .unwrap();
 //!     // 生成小程序码
-//!     let qr_code = qr.qr_code(args).await?;
+//!     let qr_code = qr.unlimited_qr_code(args).await?;
 //!     
 //!     // 获取小程序码图片数据
 //!     let buffer = qr_code.buffer();
@@ -131,11 +126,11 @@
 //!
 //! 建议在生产环境中妥善处理这些错误。
 
-use super::Qr;
+use super::{MinappEnvVersion, Qr, QrCode, Rgb};
 use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
-    new_type::PagePath,
+    new_type::{NonQueryPagePath, SceneString},
 };
 use http::header::{CONTENT_TYPE, HeaderValue};
 use http::{Method, Request};
@@ -143,80 +138,41 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::debug;
 
-/// 二维码图片数据
+/// 无限制小程序码生成参数
 ///
-/// 包含生成的二维码图片的二进制数据，通常是 PNG 格式。
-///
-/// # 示例
-///
-/// ```no_run
-/// use wechat_minapp::client::WechatMinappSDK;
-/// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
-///
-/// #[tokio::main]
-/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     // 初始化客户端
-///     let app_id = "your_app_id";
-///     let secret = "your_app_secret";
-///     let client = WechatMinappSDK::new(app_id, secret);
-///     let qr = Qr::new(client);
-///
-///     let args = QrCodeArgs::builder()
-///     .path("pages/index/index")
-///     .build()
-///     .unwrap();
-///     // 生成小程序码
-///     let qr_code = qr.qr_code(args).await?;
-///     
-///     // 获取小程序码图片数据
-///     let buffer = qr_code.buffer();
-///     Ok(())
-/// }
-/// ```
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct QrCode {
-    pub buffer: Vec<u8>,
-}
-
-impl QrCode {
-    /// 获取二维码图片的二进制数据
-    ///
-    /// 返回的字节向量通常是 PNG 格式的图片数据，可以直接写入文件或返回给 HTTP 响应。
-    ///
-    /// # 返回
-    ///
-    /// 二维码图片的二进制数据引用
-    pub fn buffer(&self) -> &Vec<u8> {
-        &self.buffer
-    }
-}
-
-/// 二维码生成参数
-///
-/// 用于配置二维码的生成选项，通过 [`QrCodeArgs::builder()`] 方法创建。
-#[derive(Debug, Deserialize)]
-pub struct QrCodeArgs {
-    path: String,
+/// 用于配置无限制小程序码的生成选项，通过 [`UnlimitedQrCodeArgs::builder()`] 方法创建。
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UnlimitedQrCodeArgs {
+    /// 默认是主页，页面 page，例如 pages/index/index，根路径前不要填加 /，不能携带参数（参数请放在scene字段里），如果不填写这个字段，默认跳主页面。scancode_time为系统保留参数，不允许配置
+    page: String,
+    /// 最大32个可见字符，只支持数字，大小写英文以及部分特殊字符：!#$&'()*+,/:;=?@-._~，其它字符请自行编码为合法字符（因不支持%，中文无法使用 urlencode 处理，请使用其他编码方式）
+    scene: String,
+    /// 默认430，二维码的宽度，单位 px，最小 280px，最大 1280px
     width: Option<i16>,
+    /// 默认是true，检查page 是否存在，为 true 时 page 必须是已经发布的小程序存在的页面（否则报错）；为 false 时允许小程序未发布或者 page 不存在， 但page 有数量上限（60000个）请勿滥用。
+    check_path: Option<bool>,
+    /// 自动配置线条颜色，如果颜色依然是黑色，则说明不建议配置主色调，默认 false
     auto_color: Option<bool>,
+    /// 默认是{"r":0,"g":0,"b":0} 。auto_color 为 false 时生效，使用 rgb 设置颜色 例如 {"r":"xxx","g":"xxx","b":"xxx"} 十进制表示
     line_color: Option<Rgb>,
+    /// 默认是false，是否需要透明底色，为 true 时，生成透明底色的小程序
     is_hyaline: Option<bool>,
+    /// 要打开的小程序版本。正式版为 "release"，体验版为 "trial"，开发版为 "develop"。默认是正式版。
     env_version: Option<MinappEnvVersion>,
 }
 
-/// 二维码参数构建器
+/// 无限制小程序码参数构建器
 ///
-/// 提供链式调用的方式构建二维码参数，确保参数的正确性。
+/// 提供链式调用的方式构建无限制小程序码参数，确保参数的正确性。
 ///
 /// # 示例
 ///
 /// ```
-/// use wechat_minapp::qr::{QrCodeArgs, Rgb, MinappEnvVersion};
+/// use wechat_minapp::qr::{UnlimitedQrCodeArgs, Rgb, MinappEnvVersion};
 ///
-/// let args = QrCodeArgs::builder()
-///     .path("pages/index/index")
+/// let args = UnlimitedQrCodeArgs::builder()
+///     .page("pages/index/index")
 ///     .width(300)
-///     .with_auto_color()
 ///     .line_color(Rgb::new(255, 0, 0))
 ///     .with_is_hyaline()
 ///     .env_version(MinappEnvVersion::Release)
@@ -224,60 +180,24 @@ pub struct QrCodeArgs {
 ///     .unwrap();
 /// ```
 #[derive(Debug, Deserialize)]
-pub struct QrCodeArgBuilder {
-    path: Option<String>,
+pub struct UnlimitedQrCodeArgsBuilder {
+    page: Option<String>,
+    scene: Option<String>,
     width: Option<i16>,
+    check_path: Option<bool>,
     auto_color: Option<bool>,
     line_color: Option<Rgb>,
     is_hyaline: Option<bool>,
     env_version: Option<MinappEnvVersion>,
 }
 
-// RGB 颜色值
-///
-/// 用于自定义二维码线条颜色。
-///
-/// # 示例
-///
-/// ```
-/// use wechat_minapp::qr::Rgb;
-///
-/// let red = Rgb::new(255, 0, 0);      // 红色
-/// let green = Rgb::new(0, 255, 0);    // 绿色
-/// let blue = Rgb::new(0, 0, 255);     // 蓝色
-/// let black = Rgb::new(0, 0, 0);      // 黑色
-/// ```
-#[derive(Debug, Deserialize, Clone, Serialize)]
-pub struct Rgb {
-    r: i16,
-    g: i16,
-    b: i16,
-}
-
-impl Rgb {
-    /// 创建新的 RGB 颜色
-    ///
-    /// # 参数
-    ///
-    /// - `r`: 红色分量 (0-255)
-    /// - `g`: 绿色分量 (0-255)
-    /// - `b`: 蓝色分量 (0-255)
-    ///
-    /// # 返回
-    ///
-    /// 新的 Rgb 实例
-    pub fn new(r: i16, g: i16, b: i16) -> Self {
-        Rgb { r, g, b }
-    }
-}
-
-impl QrCodeArgs {
-    pub fn builder() -> QrCodeArgBuilder {
-        QrCodeArgBuilder::new()
+impl UnlimitedQrCodeArgs {
+    pub fn builder() -> UnlimitedQrCodeArgsBuilder {
+        UnlimitedQrCodeArgsBuilder::new()
     }
 
-    pub fn path(&self) -> String {
-        self.path.clone()
+    pub fn page(&self) -> String {
+        self.page.clone()
     }
 
     pub fn width(&self) -> Option<i16> {
@@ -301,39 +221,18 @@ impl QrCodeArgs {
     }
 }
 
-impl Default for QrCodeArgBuilder {
+impl Default for UnlimitedQrCodeArgsBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// 小程序环境版本
-///
-/// 指定二维码生成的环境版本，不同环境版本对应不同的小程序实例。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MinappEnvVersion {
-    /// 开发版，用于开发环境
-    Release,
-    /// 体验版，用于测试环境
-    Trial,
-    /// 正式版，用于生产环境
-    Develop,
-}
-
-impl From<MinappEnvVersion> for String {
-    fn from(value: MinappEnvVersion) -> Self {
-        match value {
-            MinappEnvVersion::Develop => "develop".to_string(),
-            MinappEnvVersion::Release => "release".to_string(),
-            MinappEnvVersion::Trial => "trial".to_string(),
-        }
-    }
-}
-
-impl QrCodeArgBuilder {
+impl UnlimitedQrCodeArgsBuilder {
     pub fn new() -> Self {
-        QrCodeArgBuilder {
-            path: None,
+        UnlimitedQrCodeArgsBuilder {
+            page: None,
+            scene: None,
+            check_path: None,
             width: None,
             auto_color: None,
             line_color: None,
@@ -342,8 +241,13 @@ impl QrCodeArgBuilder {
         }
     }
 
-    pub fn path(mut self, path: impl Into<String>) -> Self {
-        self.path = Some(path.into());
+    pub fn page(mut self, page: impl Into<String>) -> Self {
+        self.page = Some(page.into());
+        self
+    }
+
+    pub fn scene(mut self, scene: impl Into<String>) -> Self {
+        self.scene = Some(scene.into());
         self
     }
 
@@ -372,16 +276,24 @@ impl QrCodeArgBuilder {
         self
     }
 
-    pub fn build(self) -> Result<QrCodeArgs> {
-        let path = self.path.map_or_else(
+    pub fn build(self) -> Result<UnlimitedQrCodeArgs> {
+        let page = self.page.map_or_else(
             || {
                 Err(Error::InvalidParameter(
                     "小程序页面路径不能为空".to_string(),
                 ))
             },
             |v| {
-                let valid_path = PagePath::try_from(v)?;
-                Ok(valid_path.to_string())
+                let path = NonQueryPagePath::try_from(v)?;
+                Ok(path.to_string())
+            },
+        )?;
+
+        let scene = self.scene.map_or_else(
+            || Err(Error::InvalidParameter("scene 不能为空".to_string())),
+            |v| {
+                let valid_scene = SceneString::try_from(v)?;
+                Ok(valid_scene.to_string())
             },
         )?;
 
@@ -391,8 +303,10 @@ impl QrCodeArgBuilder {
             ));
         }
 
-        Ok(QrCodeArgs {
-            path,
+        Ok(UnlimitedQrCodeArgs {
+            page,
+            scene,
+            check_path: self.check_path,
             width: self.width,
             auto_color: self.auto_color,
             line_color: self.line_color,
@@ -403,13 +317,13 @@ impl QrCodeArgBuilder {
 }
 
 impl Qr {
-    /// 生成小程序二维码
+    /// 生成小程序无限制小程序码
     ///
-    /// 调用微信小程序二维码生成接口，返回包含二维码图片数据的 [`QrCode`] 对象。
+    /// 调用微信小程序无限制小程序码生成接口，返回包含无限制小程序码图片数据的 [`QrCode`] 对象。
     ///
     /// # 参数
     ///
-    /// - `args`: 二维码生成参数
+    /// - `args`: 无限制小程序码生成参数
     ///
     /// # 返回
     ///
@@ -419,7 +333,7 @@ impl Qr {
     ///
     /// ```no_run
     /// use wechat_minapp::client::WechatMinappSDK;
-    /// use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
+    /// use wechat_minapp::qr::{UnlimitedQrCodeArgs,Qr, MinappEnvVersion};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -430,14 +344,14 @@ impl Qr {
     ///     let qr = Qr::new(client);
     ///
     ///     // 构建小程序码参数
-    ///     let args = QrCodeArgs::builder()
-    ///         .path("pages/index/index")
+    ///     let args = UnlimitedQrCodeArgs::builder()
+    ///         .page("pages/index/index")
     ///         .width(300)
     ///         .env_version(MinappEnvVersion::Release)
     ///         .build()?;
     ///
     ///     // 生成小程序码
-    ///     let qr_code = qr.qr_code(args).await?;
+    ///     let qr_code = qr.unlimited_qr_code(args).await?;
     ///     
     ///     // 获取小程序码图片数据
     ///     let buffer = qr_code.buffer();
@@ -456,18 +370,23 @@ impl Qr {
     /// - 认证错误（access_token 无效）
     /// - 微信 API 返回错误
     /// - 参数序列化错误
-    pub async fn qr_code(&self, args: QrCodeArgs) -> Result<QrCode> {
-        debug!("get qr code args {:?}", &args);
+    pub async fn unlimited_qr_code(&self, args: UnlimitedQrCodeArgs) -> Result<QrCode> {
+        debug!("get unlimited qr code args {:?}", &args);
         let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::QR_CODE_ENDPOINT)?;
+        let mut url = url::Url::parse(constants::UNLIMITIED_QR_CODE_ENDPOINT)?;
         url.set_query(Some(&token));
 
         let mut body = HashMap::new();
 
-        body.insert("path", args.path);
+        body.insert("page", args.page);
+        body.insert("scene", args.scene);
 
         if let Some(width) = args.width {
             body.insert("width", width.to_string());
+        }
+
+        if let Some(check_path) = args.check_path {
+            body.insert("check_path", check_path.to_string());
         }
 
         if let Some(auto_color) = args.auto_color {
@@ -502,7 +421,7 @@ impl Qr {
 
         let response = client.execute(request).await?;
 
-        debug!("response: {:#?}", response);
+        debug!("get unlimited qr code response: {:#?}", response);
 
         if response.status().is_success() {
             Ok(QrCode {

@@ -37,6 +37,7 @@
 
 use serde_repr::Deserialize_repr;
 
+use crate::new_type::{PagePathError, ValidationSceneError};
 use aes::cipher::InvalidLength as AesInvalidLength;
 use aes::cipher::block_padding::UnpadError;
 use base64::DecodeError as Base64DecodeError;
@@ -349,5 +350,17 @@ impl From<(ErrorCode, String)> for Error {
             RequestDeniedOneHour => Error::RequestDeniedOneHour(message),
             _ => Error::InvalidParameter(message),
         }
+    }
+}
+
+impl From<PagePathError> for Error {
+    fn from(value: PagePathError) -> Self {
+        Error::InvalidParameter(value.to_string())
+    }
+}
+
+impl From<ValidationSceneError> for Error {
+    fn from(value: ValidationSceneError) -> Self {
+        Error::InvalidParameter(value.to_string())
     }
 }
