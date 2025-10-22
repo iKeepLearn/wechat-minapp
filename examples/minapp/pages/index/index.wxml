@@ -1,0 +1,30 @@
+<!--index.wxml-->
+<scroll-view class="scrollarea" scroll-y type="list">
+    <view class="container">
+        <view class="flex content-between">
+            <text class="nickname-label">openid</text>
+            <text bindtap="getOpenid" class="green" wx:if="{{!!!open_id}}"> 获取 </text>
+            <text class="userinfo-nickname" wx:if="{{open_id}}">{{open_id}}</text>
+        </view>
+
+        <textarea class="border padding" bindinput="input"></textarea>
+        <view class="userinfo-nickname" wx:if="{{check_result}}">检测结果：{{check_result}}</view>
+        <text bindtap="checkMsg" class="green"> 内容安全检测 </text>
+        
+        <view class="flex content-between">
+            <text class="nickname-label">用户手机号</text>
+            <button open-type="getPhoneNumber" class="green" bindgetphonenumber="getPhoneNumber"  wx:if="{{!!!phone}}">获取</button>
+            <text class="userinfo-nickname" wx:if="{{phone}}">{{phone}}</text>
+        </view>
+
+        <view class="flex content-between">
+            <text class="nickname-label">小程序码</text>
+            <text bindtap="getQrCode" class="green" wx:if="{{!!!qr}}"> 获取 </text>
+            <image wx:if="{{qr}}" src="{{qr}}"></image>
+        </view>
+
+        <view class="usermotto">
+            <text class="user-motto">{{motto}}</text>
+        </view>
+    </view>
+</scroll-view>

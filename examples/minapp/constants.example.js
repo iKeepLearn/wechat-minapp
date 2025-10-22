@@ -1,0 +1,1 @@
+export const baseUrl = "https://examples.com" // api 服务器 url

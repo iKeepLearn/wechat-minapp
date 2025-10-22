@@ -10,6 +10,8 @@ A rust sdk for wechat miniprogram server api
 
 [1.x 版本](https://github.com/ikeeplearn/wechat-minapp-v1)
 
+[`actix web + 小程序端 完整示例`](https://github.com/ikeeplearn/wechat-minapp/tree/master/examples)
+
 ## 功能
 
 - 获取访问令牌
@@ -78,7 +80,7 @@ use actix_web::{Responder, web};
 #[derive(Deserialize, Default)]
 #[serde(default)]
 pub struct Logger {
-    code: String,
+   pub code: String,
 }
 
 pub async fn login(
@@ -104,20 +106,21 @@ use actix_web::{Responder, web};
 
 #[derive(Deserialize, Default)]
 pub struct EncryptedPayload {
-    code: String,
-    encrypted_data: String,
-    iv: String,
+   pub code: String,
+   pub encrypted_data: String,
+   pub iv: String,
 }
 
-pub async fn decrypt(
+pub async fn user_info(
     state: web::Data<AppState>,
     payload: web::Json<EncryptedPayload>,
 ) -> Result<impl Responder, Error> {
-     let user = User::new(state.client);
-    let credential = user.login(&logger.code).await?;
-    let user = credential.decrypt(&payload.encrypted_data, &payload.iv)?;
+    let client = state.wechat_minapp.client();
+    let user = User::new(client);
+    let credential = user.login(&payload.code).await?;
+    let user_info = credential.decrypt(&payload.encrypted_data, &payload.iv)?;
 
-    Ok(())
+    Ok(web::Json(user_info))
 }
 
 ```
@@ -134,8 +137,8 @@ use actix_web::{Responder, web};
 
 #[derive(Deserialize, Default)]
 pub struct PhonePayload {
-    code: String,
-    openid: Option<String>,
+   pub code: String,
+   pub openid: Option<String>,
 }
 
 pub async fn get_phone_num(
@@ -188,8 +191,8 @@ use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize,Serialize)]
 pub struct ContentCheck {
-    content: String,
-    scene: Scene,
+   pub content: String,
+   pub scene: Scene,
 }
 
 pub async fn get_user_qr(
@@ -231,9 +234,9 @@ use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize,Serialize)]
 pub struct ShortLinkDto {
-    page_url: String,
-    page_title: Option<String>,
-    is_permanent:Option<bool>
+   pub page_url: String,
+   pub page_title: Option<String>,
+   pub is_permanent:Option<bool>
 }
 
 pub async fn get_user_qr(
@@ -241,14 +244,14 @@ pub async fn get_user_qr(
     date:web::Json<ShortLinkDto>
 ) -> Result<impl Responder, Error> {
 
-    let args = ShortLinkArgs::builder().path(date.page_url);
+    let mut args = ShortLinkArgs::builder().path(date.page_url);
     
     if let Some(page_title)=data.page_title{
-     let args = args.page_title(page_title);
+      args = args.page_title(page_title);
     }
     
     if let Some(is_permanent)=data.is_permanent{
-     let args = args.with_permanent(is_permanent);
+      args = args.with_permanent(is_permanent);
     }
    
     
