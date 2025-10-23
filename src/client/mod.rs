@@ -62,6 +62,7 @@ pub use access_token::AccessToken;
 pub use token_storage::{MemoryTokenStorage, TokenStorage};
 pub use token_type::{NonStableToken, StableToken};
 pub type WechatMinapp = WechatMinappSDK;
+pub type NormalToken = NonStableToken;
 
 use crate::Result;
 use async_trait::async_trait;

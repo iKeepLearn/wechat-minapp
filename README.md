@@ -26,22 +26,21 @@ A rust sdk for wechat miniprogram server api
 ### 获取 access token
 
 ```rust
-use  wechat_minapp::client::{WechatMinappSDK, 
-NonStableToken, MemoryTokenStorage, ReqwestHttpClient};
+use  wechat_minapp::client::{WechatMinapp, 
+NormalToken, MemoryTokenStorage, ReqwestHttpClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_id = "your app id";
     let app_secret = "your app secret";
     let http_client = Arc::new(ReqwestHttpClient::new());
-    let token_type = Arc::new(StableToken::new(
+    let token_type = Arc::new(NormalToken::new(
         &app_id,
         &secret,
-        false,
         http_client.clone(),
     ));
     let token_storage = Arc::new(MemoryTokenStorage::new(token_type));
-    let client =  WechatMinappSDK::custom(http_client, token_storage)
+    let client =  WechatMinapp::custom(http_client, token_storage)
 
     let access_token = client.token().await?;
 
@@ -52,14 +51,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 获取 stable access token
 
 ```rust
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_id = "your app id";
     let app_secret = "your app secret";
 
-    let client = WechatMinappSDK::new(app_id, app_secret);
+    let client = WechatMinapp::new(app_id, app_secret);
     let access_token = client.token().await?;
 
     Ok(())
@@ -69,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 登录
 
 ```rust
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 use wechat_minapp::user::{User, Contact};
 use serde::Deserialize;
 
@@ -96,7 +95,7 @@ pub async fn login(
 ### 解码用户信息
 
 ```rust
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 use wechat_minapp::user::{User, Contact};
 use serde::Deserialize;
 
@@ -127,7 +126,7 @@ pub async fn user_info(
 ### 获取用户手机号
 
 ```rust
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 use wechat_minapp::user::User;
 use serde::Deserialize;
 
@@ -155,7 +154,7 @@ pub async fn get_phone_num(
 ### 生成小程序码
 
 ```rust
-use use wechat_minapp::client::WechatMinappSDK;
+use use wechat_minapp::client::WechatMinapp;
 use wechat_minapp::qr::{QrCodeArgs,Qr, MinappEnvVersion};
 use serde::Deserialize;
 
@@ -183,7 +182,7 @@ pub async fn get_user_qr(
 
 ```rust
 use wechat_minapp::minapp_security::{Args, Scene,MinappSecurity};
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 use crate::{Error, state::AppState};
 use actix_web::{Responder, web};
 use serde::{Deserialize,Serialize};
@@ -226,7 +225,7 @@ let args = Args::builder()
 
 ```rust
 use wechat_minapp::link::{Link, ShortLinkArgs};
-use wechat_minapp::client::WechatMinappSDK;
+use wechat_minapp::client::WechatMinapp;
 use crate::{Error, state::AppState};
 use actix_web::{Responder, web};
 use serde::{Deserialize,Serialize};

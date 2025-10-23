@@ -27,24 +27,23 @@
 //!
 //! ## 默认客户端和存储方式
 //! ```no_run
-//! use wechat_minapp::client::WechatMinappSDK;
-//! let client = WechatMinappSDK::new("your_app_id", "your_app_secret");
+//! use wechat_minapp::client::WechatMinapp;
+//! let client = WechatMinapp::new("your_app_id", "your_app_secret");
 //! ```   
 //!
 //! ## 自定义 HTTP 客户端和存储方式
 //! ```no_run
-//! use wechat_minapp::client::{MemoryTokenStorage, StableToken};
-//! use wechat_minapp::client::{ReqwestHttpClient, WechatMinappSDK};
+//! use wechat_minapp::client::{MemoryTokenStorage, NormalToken};
+//! use wechat_minapp::client::{ReqwestHttpClient, WechatMinapp};
 //!
 //! let http_client = Arc::new(ReqwestHttpClient::new());
-//! let token_type = Arc::new(StableToken::new(
+//! let token_type = Arc::new(Normal::new(
 //!        &app_id,
 //!        &secret,
-//!        false,
 //!        http_client.clone(),
 //!    ));
 //! let token_storage = Arc::new(MemoryTokenStorage::new(token_type));
-//! let client = WechatMinappSDK::custom(http_client, token_storage)
+//! let client = WechatMinapp::custom(http_client, token_storage)
 //!
 //! ```
 //!
