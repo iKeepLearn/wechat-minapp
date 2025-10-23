@@ -12,11 +12,12 @@
 
 use super::access_token::AccessTokenBuilder;
 use super::{AccessToken, AppConfig, HttpClient};
+use crate::utils::build_request;
 use crate::{Result, constants};
 use async_trait::async_trait;
-use http::{Method, Request};
-use std::collections::HashMap;
+use http::Method;
 use std::sync::Arc;
+use tracing::debug;
 
 /// 定义接口调用凭据的行为
 #[async_trait]
@@ -60,25 +61,20 @@ impl StableToken {
 impl TokenType for StableToken {
     /// 获取稳定版接口调用凭据
     async fn token(&self) -> Result<AccessToken> {
-        let mut body: HashMap<&str, String> = HashMap::new();
-        body.insert("grant_type", "client_credential".into());
-        body.insert("appid", self.app_id.to_string());
-        body.insert("secret", self.secret.to_string());
-
-        if self.force_refresh {
-            body.insert("force_refresh", self.force_refresh.to_string());
-        }
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(self.end_point.clone())
-            .method(Method::POST)
-            .header("User-Agent", constants::HTTP_CLIENT_USER_AGENT)
-            .body(req_body)?;
+        let body = serde_json::json!({
+            "grant_type":"client_credential",
+            "appid":self.app_id.to_string(),
+            "secret":self.secret.to_string(),
+            "force_refresh":self.force_refresh,
+        });
+        let request = build_request(&self.end_point, Method::POST, None, None, Some(body))?;
 
         let response = self.client.execute(request).await?;
         let response_body = response.into_body();
         let token_builder = serde_json::from_slice::<AccessTokenBuilder>(&response_body)?;
-        Ok(token_builder.build())
+        let token = token_builder.build();
+        debug!("stable access token :{:?}", token);
+        Ok(token)
     }
 
     /// 获取应用配置
@@ -115,17 +111,12 @@ impl NonStableToken {
 impl TokenType for NonStableToken {
     /// 获取普通接口调用凭据
     async fn token(&self) -> Result<AccessToken> {
-        let mut body: HashMap<&str, String> = HashMap::new();
-        body.insert("grant_type", "client_credential".into());
-        body.insert("appid", self.app_id.to_string());
-        body.insert("secret", self.secret.to_string());
-
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(self.end_point.clone())
-            .method(Method::POST)
-            .header("User-Agent", constants::HTTP_CLIENT_USER_AGENT)
-            .body(req_body)?;
+        let body = serde_json::json!({
+            "grant_type":"client_credential",
+            "appid":self.app_id.to_string(),
+            "secret":self.secret.to_string(),
+        });
+        let request = build_request(&self.end_point, Method::POST, None, None, Some(body))?;
 
         let response = self.client.execute(request).await?;
         let response_body = response.into_body();

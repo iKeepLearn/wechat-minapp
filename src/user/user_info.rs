@@ -2,11 +2,10 @@ use super::User;
 use super::credential::Credential;
 use crate::{
     Result, constants, error::Error::InternalServer, response::Response,
-    user::credential::CredentialBuilder,
+    user::credential::CredentialBuilder, utils::build_request,
 };
-use http::{HeaderValue, Method, Request};
+use http::Method;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::{debug, instrument};
 
 /// 微信用户基本信息
@@ -246,27 +245,22 @@ impl User {
     #[instrument(skip(self, code))]
     pub async fn login(&self, code: &str) -> Result<Credential> {
         debug!("code: {}", code);
-
-        let mut map: HashMap<&str, &str> = HashMap::new();
         let config = self.client.app_config();
-        map.insert("appid", &config.app_id);
-        map.insert("secret", &config.secret);
-        map.insert("js_code", code);
-        map.insert("grant_type", "authorization_code");
-
-        let mut url = url::Url::parse(constants::AUTHENTICATION_END_POINT)?;
-        url.query_pairs_mut().extend_pairs(&map);
+        let query = serde_json::json!({
+        "appid": &config.app_id,
+        "secret":&config.secret,
+        "js_code": code,
+        "grant_type": "authorization_code"
+        });
+        let request = build_request(
+            constants::AUTHENTICATION_END_POINT,
+            Method::GET,
+            None,
+            Some(query),
+            None,
+        )?;
 
         let client = &self.client.client;
-        let query = serde_json::to_vec(&map)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::GET)
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(query)?;
 
         let response = client.execute(request).await?;
         debug!("authentication response: {:#?}", &response);
@@ -344,27 +338,29 @@ impl User {
     /// [获取手机号](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-info/phone-number/getPhoneNumber.html)
     pub async fn get_contact(&self, code: &str, open_id: Option<&str>) -> Result<Contact> {
         debug!("code: {}, open_id: {:?}", code, open_id);
-        let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::PHONE_END_POINT)?;
-        url.set_query(Some(&token));
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?
+        });
 
-        let mut body = HashMap::new();
-        body.insert("code", code);
+        let mut body = serde_json::json!({
+            "code":code
+        });
 
         if let Some(open_id) = open_id {
-            body.insert("openid", open_id);
+            body.as_object_mut()
+                .unwrap()
+                .insert("openid".to_string(), serde_json::json!(open_id));
         }
 
+        let request = build_request(
+            constants::PHONE_END_POINT,
+            Method::POST,
+            None,
+            Some(query),
+            Some(body),
+        )?;
+
         let client = &self.client.client;
-        let query = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::POST)
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(query)?;
 
         let response = client.execute(request).await?;
         debug!("authentication response: {:#?}", &response);

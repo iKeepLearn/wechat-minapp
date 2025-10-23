@@ -136,11 +136,10 @@ use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
     new_type::PagePath,
+    utils::build_request,
 };
-use http::header::{CONTENT_TYPE, HeaderValue};
-use http::{Method, Request};
+use http::Method;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::debug;
 
 /// 二维码图片数据
@@ -194,13 +193,18 @@ impl QrCode {
 /// 二维码生成参数
 ///
 /// 用于配置二维码的生成选项，通过 [`QrCodeArgs::builder()`] 方法创建。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct QrCodeArgs {
     path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     width: Option<i16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     auto_color: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     line_color: Option<Rgb>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     is_hyaline: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     env_version: Option<MinappEnvVersion>,
 }
 
@@ -311,6 +315,7 @@ impl Default for QrCodeArgBuilder {
 ///
 /// 指定二维码生成的环境版本，不同环境版本对应不同的小程序实例。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum MinappEnvVersion {
     /// 开发版，用于开发环境
     Release,
@@ -458,47 +463,29 @@ impl Qr {
     /// - 参数序列化错误
     pub async fn qr_code(&self, args: QrCodeArgs) -> Result<QrCode> {
         debug!("get qr code args {:?}", &args);
-        let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::QR_CODE_ENDPOINT)?;
-        url.set_query(Some(&token));
 
-        let mut body = HashMap::new();
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?
+        });
 
-        body.insert("path", args.path);
+        let body = serde_json::to_value(QrCodeArgs {
+            path: args.path,
+            width: args.width,
+            auto_color: args.auto_color,
+            line_color: args.line_color,
+            is_hyaline: args.is_hyaline,
+            env_version: args.env_version,
+        })?;
 
-        if let Some(width) = args.width {
-            body.insert("width", width.to_string());
-        }
-
-        if let Some(auto_color) = args.auto_color {
-            body.insert("auto_color", auto_color.to_string());
-        }
-
-        if let Some(line_color) = args.line_color {
-            let value = serde_json::to_string(&line_color)?;
-            body.insert("line_color", value);
-        }
-
-        if let Some(is_hyaline) = args.is_hyaline {
-            body.insert("is_hyaline", is_hyaline.to_string());
-        }
-
-        if let Some(env_version) = args.env_version {
-            body.insert("env_version", env_version.into());
-        }
+        let request = build_request(
+            constants::QR_CODE_ENDPOINT,
+            Method::POST,
+            None,
+            Some(query),
+            Some(body),
+        )?;
 
         let client = &self.client.client;
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::POST)
-            .header("encoding", HeaderValue::from_static("null"))
-            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(req_body)?;
 
         let response = client.execute(request).await?;
 

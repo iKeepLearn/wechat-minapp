@@ -36,11 +36,10 @@ use super::Link;
 use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
+    utils::build_request,
 };
-use http::header::{CONTENT_TYPE, HeaderValue};
-use http::{Method, Request};
+use http::Method;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::debug;
 
 /// 短链接
@@ -78,9 +77,11 @@ pub struct ShortLink {
 /// 短链接生成参数
 ///
 /// 用于配置短链接的生成选项，通过 [`ShortLinkArgs::builder()`] 方法创建。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ShortLinkArgs {
+    #[serde(rename = "page_url")]
     path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     page_title: Option<String>,
     is_permanent: bool,
 }
@@ -227,33 +228,26 @@ impl Link {
     /// - 参数序列化错误
     pub async fn short_link(&self, args: ShortLinkArgs) -> Result<ShortLink> {
         debug!("get qr code args {:?}", &args);
-        let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::SHORT_LINK_END_POINT)?;
-        url.set_query(Some(&token));
 
-        let mut body = HashMap::new();
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?
+        });
 
-        body.insert("page_url", args.path);
+        let body = serde_json::to_value(ShortLinkArgs {
+            path: args.path.clone(),
+            page_title: args.page_title,
+            is_permanent: args.is_permanent,
+        })?;
 
-        if let Some(page_title) = args.page_title {
-            body.insert("page_title", page_title.to_string());
-        }
-
-        if args.is_permanent {
-            body.insert("is_permanent", args.is_permanent.to_string());
-        }
+        let request = build_request(
+            constants::SHORT_LINK_END_POINT,
+            Method::POST,
+            None,
+            Some(query),
+            Some(body),
+        )?;
 
         let client = &self.client.client;
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::POST)
-            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(req_body)?;
 
         let response = client.execute(request).await?;
 

@@ -50,11 +50,10 @@
 //! ```
 
 use super::{Label, MinappSecurity, Suggest};
+use crate::utils::build_request;
 use crate::{Result, constants, error::Error};
-use http::header::{CONTENT_TYPE, HeaderValue};
-use http::{Method, Request};
+use http::Method;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::debug;
 
 /// 内容安全检测场景
@@ -219,7 +218,7 @@ impl ArgsBuilder {
         let content = self
             .content
             .ok_or(Error::InvalidParameter("content 是必填参数".to_string()))?;
-        let version = self.version.unwrap_or(2); // 默认版本为2
+        //let version = self.version.unwrap_or(2); // 默认版本为2
         let scene = self
             .scene
             .ok_or(Error::InvalidParameter("scene 是必填参数".to_string()))?;
@@ -243,7 +242,7 @@ impl ArgsBuilder {
 
         Ok(Args {
             content,
-            version,
+            version: 2,
             scene,
             openid,
             title: self.title,
@@ -515,44 +514,30 @@ impl MinappSecurity {
 
         // 验证参数
         args.validate()?;
-        let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::MSG_SEC_CHECK_END_POINT)?;
-        url.set_query(Some(&token));
 
-        let mut body = HashMap::new();
-        let version = args.version.to_string();
-        let scene = (args.scene as u32).to_string();
-        // URL 参数：access_token
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?
+        });
 
-        // Body 参数
-        body.insert("content", &args.content);
-        body.insert("version", &version);
-        body.insert("scene", &scene);
-        body.insert("openid", &args.openid);
+        let body = serde_json::to_value(Args {
+            content: args.content.clone(),
+            version: args.version,
+            scene: args.scene,
+            openid: args.openid.clone(),
+            title: args.title.clone(),
+            nickname: args.nickname.clone(),
+            signature: args.signature.clone(),
+        })?;
 
-        if let Some(title) = &args.title {
-            body.insert("title", title);
-        }
-
-        if let Some(nickname) = &args.nickname {
-            body.insert("nickname", nickname);
-        }
-
-        if let Some(signature) = &args.signature {
-            body.insert("signature", signature);
-        }
+        let request = build_request(
+            constants::MSG_SEC_CHECK_END_POINT,
+            Method::POST,
+            None,
+            Some(query),
+            Some(body),
+        )?;
 
         let client = &self.client.client;
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::POST)
-            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(req_body)?;
 
         let response = client.execute(request).await?;
 

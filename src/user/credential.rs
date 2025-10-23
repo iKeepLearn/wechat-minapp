@@ -9,13 +9,13 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use cbc::Decryptor;
 use hex::encode;
 use hmac::{Hmac, Mac};
-use http::{HeaderValue, Method, Request};
+use http::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 use sha2::Sha256;
-use std::collections::HashMap;
 use tracing::{debug, instrument};
 
+use crate::utils::build_request;
 use crate::{Result, constants, error::Error::InternalServer, response::Response};
 
 type Aes128CbcDec = Decryptor<Aes128>;
@@ -141,23 +141,21 @@ impl User {
         let hasher = mac.finalize();
         let signature = encode(hasher.into_bytes());
 
-        let mut map = HashMap::new();
+        let query = serde_json::json!({
+            "openid": open_id.to_string(),
+            "signature":signature,
+            "sig_method": "hmac_sha256".to_string()
+        });
 
-        map.insert("openid", open_id.to_string());
-        map.insert("signature", signature);
-        map.insert("sig_method", "hmac_sha256".into());
-        let mut url = url::Url::parse(constants::CHECK_SESSION_KEY_END_POINT)?;
-        url.query_pairs_mut().extend_pairs(&map);
+        let request = build_request(
+            constants::CHECK_SESSION_KEY_END_POINT,
+            Method::GET,
+            None,
+            Some(query),
+            None,
+        )?;
+
         let client = &self.client.client;
-        let query = serde_json::to_vec(&map)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::GET)
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(query)?;
 
         let response = client.execute(request).await?;
 
@@ -181,25 +179,22 @@ impl User {
         let hasher = mac.finalize();
         let signature = encode(hasher.into_bytes());
 
-        let mut map = HashMap::new();
-        map.insert("access_token", self.client.token().await?);
-        map.insert("openid", open_id.to_string());
-        map.insert("signature", signature);
-        map.insert("sig_method", "hmac_sha256".into());
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?,
+            "openid": open_id.to_string(),
+            "signature":signature,
+            "sig_method": "hmac_sha256".to_string()
+        });
 
-        let mut url = url::Url::parse(constants::RESET_SESSION_KEY_END_POINT)?;
-        url.query_pairs_mut().extend_pairs(&map);
+        let request = build_request(
+            constants::RESET_SESSION_KEY_END_POINT,
+            Method::GET,
+            None,
+            Some(query),
+            None,
+        )?;
+
         let client = &self.client.client;
-        let query = serde_json::to_vec(&map)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::GET)
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(query)?;
-
         let response = client.execute(request).await?;
         debug!("response: {:#?}", &response);
 

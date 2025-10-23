@@ -131,11 +131,11 @@ use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
     new_type::{NonQueryPagePath, SceneString},
+    utils::build_request,
 };
-use http::header::{CONTENT_TYPE, HeaderValue};
-use http::{Method, Request};
+use http::Method;
+use http::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tracing::debug;
 
 /// 无限制小程序码生成参数
@@ -148,16 +148,22 @@ pub struct UnlimitedQrCodeArgs {
     /// 最大32个可见字符，只支持数字，大小写英文以及部分特殊字符：!#$&'()*+,/:;=?@-._~，其它字符请自行编码为合法字符（因不支持%，中文无法使用 urlencode 处理，请使用其他编码方式）
     scene: String,
     /// 默认430，二维码的宽度，单位 px，最小 280px，最大 1280px
+    #[serde(skip_serializing_if = "Option::is_none")]
     width: Option<i16>,
     /// 默认是true，检查page 是否存在，为 true 时 page 必须是已经发布的小程序存在的页面（否则报错）；为 false 时允许小程序未发布或者 page 不存在， 但page 有数量上限（60000个）请勿滥用。
+    #[serde(skip_serializing_if = "Option::is_none")]
     check_path: Option<bool>,
     /// 自动配置线条颜色，如果颜色依然是黑色，则说明不建议配置主色调，默认 false
+    #[serde(skip_serializing_if = "Option::is_none")]
     auto_color: Option<bool>,
     /// 默认是{"r":0,"g":0,"b":0} 。auto_color 为 false 时生效，使用 rgb 设置颜色 例如 {"r":"xxx","g":"xxx","b":"xxx"} 十进制表示
+    #[serde(skip_serializing_if = "Option::is_none")]
     line_color: Option<Rgb>,
     /// 默认是false，是否需要透明底色，为 true 时，生成透明底色的小程序
+    #[serde(skip_serializing_if = "Option::is_none")]
     is_hyaline: Option<bool>,
     /// 要打开的小程序版本。正式版为 "release"，体验版为 "trial"，开发版为 "develop"。默认是正式版。
+    #[serde(skip_serializing_if = "Option::is_none")]
     env_version: Option<MinappEnvVersion>,
 }
 
@@ -372,52 +378,36 @@ impl Qr {
     /// - 参数序列化错误
     pub async fn unlimited_qr_code(&self, args: UnlimitedQrCodeArgs) -> Result<QrCode> {
         debug!("get unlimited qr code args {:?}", &args);
-        let token = format!("access_token={}", self.client.token().await?);
-        let mut url = url::Url::parse(constants::UNLIMITIED_QR_CODE_ENDPOINT)?;
-        url.set_query(Some(&token));
 
-        let mut body = HashMap::new();
+        let query = serde_json::json!({
+            "access_token":self.client.token().await?
+        });
 
-        body.insert("page", args.page);
-        body.insert("scene", args.scene);
+        let headers = serde_json::json!({
+            "encoding":"null",
+            CONTENT_TYPE.to_string():"application/json"
+        });
 
-        if let Some(width) = args.width {
-            body.insert("width", width.to_string());
-        }
+        let body = serde_json::to_value(UnlimitedQrCodeArgs {
+            page: args.page,
+            scene: args.scene,
+            check_path: args.check_path,
+            width: args.width,
+            auto_color: args.auto_color,
+            line_color: args.line_color,
+            is_hyaline: args.is_hyaline,
+            env_version: args.env_version,
+        })?;
 
-        if let Some(check_path) = args.check_path {
-            body.insert("check_path", check_path.to_string());
-        }
-
-        if let Some(auto_color) = args.auto_color {
-            body.insert("auto_color", auto_color.to_string());
-        }
-
-        if let Some(line_color) = args.line_color {
-            let value = serde_json::to_string(&line_color)?;
-            body.insert("line_color", value);
-        }
-
-        if let Some(is_hyaline) = args.is_hyaline {
-            body.insert("is_hyaline", is_hyaline.to_string());
-        }
-
-        if let Some(env_version) = args.env_version {
-            body.insert("env_version", env_version.into());
-        }
+        let request = build_request(
+            constants::UNLIMITIED_QR_CODE_ENDPOINT,
+            Method::POST,
+            Some(headers),
+            Some(query),
+            Some(body),
+        )?;
 
         let client = &self.client.client;
-        let req_body = serde_json::to_vec(&body)?;
-        let request = Request::builder()
-            .uri(url.as_str())
-            .method(Method::POST)
-            .header("encoding", HeaderValue::from_static("null"))
-            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
-            .header(
-                "User-Agent",
-                HeaderValue::from_static(constants::HTTP_CLIENT_USER_AGENT),
-            )
-            .body(req_body)?;
 
         let response = client.execute(request).await?;
 

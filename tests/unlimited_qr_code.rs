@@ -42,7 +42,7 @@ fn test_minapp_env_version_conversion() {
 fn test_unlimited_qr_code_args_build_success() {
     let args = UnlimitedQrCodeArgs::builder()
         .page("pages/index/index")
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .build()
         .expect("构建应该成功");
 
@@ -58,7 +58,7 @@ fn test_unlimited_qr_code_args_build_success() {
 fn test_unlimited_qr_code_args_build_with_all_fields() {
     let args = UnlimitedQrCodeArgs::builder()
         .page("pages/detail/detail")
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .width(400)
         // .with_auto_color()
         .line_color(Rgb::new(0, 255, 0))
@@ -80,7 +80,7 @@ fn test_unlimited_qr_code_args_build_with_all_fields() {
 #[test]
 fn test_unlimited_qr_code_args_build_missing_path() {
     let result = UnlimitedQrCodeArgs::builder()
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .build();
     assert!(result.is_err());
 
@@ -102,20 +102,6 @@ fn test_unlimited_qr_code_args_build_missing_scene() {
 }
 
 #[test]
-fn test_unlimited_qr_code_args_build_path_too_long() {
-    let long_path = "a".repeat(1025);
-    let result = UnlimitedQrCodeArgs::builder()
-        .page(long_path)
-        .scene(format!("invite={}", get_test_openid()))
-        .build();
-    assert!(result.is_err());
-
-    if let Err(err) = result {
-        assert!(err.to_string().contains("页面路径最大长度 1024 个字符"));
-    }
-}
-
-#[test]
 fn test_unlimited_qr_code_args_build_scene_too_long() {
     let long_scene = "a".repeat(1025);
     let result = UnlimitedQrCodeArgs::builder()
@@ -125,7 +111,7 @@ fn test_unlimited_qr_code_args_build_scene_too_long() {
     assert!(result.is_err());
 
     if let Err(err) = result {
-        assert!(err.to_string().contains("页面路径最大长度 1024 个字符"));
+        assert!(err.to_string().contains("字符串长度超过32个字符限制"));
     }
 }
 
@@ -135,7 +121,7 @@ fn test_unlimited_qr_code_args_build_path_boundary() {
     let boundary_path = "a".repeat(1024);
     let result = UnlimitedQrCodeArgs::builder()
         .page(boundary_path)
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .build();
     assert!(result.is_ok());
 }
@@ -143,7 +129,7 @@ fn test_unlimited_qr_code_args_build_path_boundary() {
 #[test]
 fn test_unlimited_qr_code_args_build_scene_boundary() {
     // 测试边界情况：正好 32 个字符
-    let boundary_scene = "a".repeat(1024);
+    let boundary_scene = "a".repeat(32);
     let result = UnlimitedQrCodeArgs::builder()
         .page("page/index/index")
         .scene(boundary_scene)
@@ -158,7 +144,7 @@ async fn test_unlimited_qr_code_with_all_parameters() {
 
     let args = UnlimitedQrCodeArgs::builder()
         .page("pages/index/index")
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .width(300)
         .line_color(Rgb::new(255, 0, 0))
         .with_is_hyaline()
@@ -185,7 +171,7 @@ async fn test_unlimited_qr_code_with_only_width() {
     let qr = Qr::new(client);
     let args = UnlimitedQrCodeArgs::builder()
         .page("pages/index/index")
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .width(200)
         .build()
         .unwrap();
@@ -193,6 +179,8 @@ async fn test_unlimited_qr_code_with_only_width() {
     let result = qr.unlimited_qr_code(args).await;
     assert!(result.is_ok());
     let qr_code = result.unwrap();
+    eprintln!("qr_code {:?}", qr_code);
+    eprintln!("qr_code {:?}", String::from_utf8_lossy(qr_code.buffer()));
     tokio::fs::write(
         "test_unlimited_qr_code_with_only_width.png",
         qr_code.buffer(),
@@ -208,7 +196,7 @@ async fn test_unlimited_qr_code_with_only_env_version() {
     let qr = Qr::new(client);
     let args = UnlimitedQrCodeArgs::builder()
         .page("pages/index/index")
-        .scene(format!("invite={}", get_test_openid()))
+        .scene(format!("i={}", get_test_openid()))
         .env_version(MinappEnvVersion::Develop)
         .build()
         .unwrap();
