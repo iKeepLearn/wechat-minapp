@@ -50,9 +50,8 @@
 //! ```
 
 use super::{Label, MinappSecurity, Suggest};
-use crate::utils::build_request;
+use crate::utils::RequestBuilder;
 use crate::{Result, constants, error::Error};
-use http::Method;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -529,13 +528,10 @@ impl MinappSecurity {
             signature: args.signature.clone(),
         })?;
 
-        let request = build_request(
-            constants::MSG_SEC_CHECK_END_POINT,
-            Method::POST,
-            None,
-            Some(query),
-            Some(body),
-        )?;
+        let request = RequestBuilder::new(constants::MSG_SEC_CHECK_END_POINT)
+            .query(query)
+            .body(body)
+            .build()?;
 
         let client = &self.client.client;
 

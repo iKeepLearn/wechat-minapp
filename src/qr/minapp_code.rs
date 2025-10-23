@@ -136,9 +136,9 @@ use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
     new_type::PagePath,
-    utils::build_request,
+    utils::RequestBuilder,
 };
-use http::Method;
+
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -477,13 +477,10 @@ impl Qr {
             env_version: args.env_version,
         })?;
 
-        let request = build_request(
-            constants::QR_CODE_ENDPOINT,
-            Method::POST,
-            None,
-            Some(query),
-            Some(body),
-        )?;
+        let request = RequestBuilder::new(constants::QR_CODE_ENDPOINT)
+            .query(query)
+            .body(body)
+            .build()?;
 
         let client = &self.client.client;
 

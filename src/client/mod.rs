@@ -186,6 +186,9 @@ impl HttpClient for ReqwestHttpClient {
     async fn execute(&self, req: Request<Vec<u8>>) -> Result<Response<Vec<u8>>> {
         let reqwest_req: ReqwestRequest = req.try_into()?;
 
+        // 方便 cargo test 输出
+        eprintln!("reqwest url: {:?}", reqwest_req.url());
+
         let reqwest_res = self.client.execute(reqwest_req).await?;
 
         let status = reqwest_res.status();

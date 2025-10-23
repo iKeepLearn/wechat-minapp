@@ -79,3 +79,48 @@ pub fn build_request(
         Ok(req_builder_with_headers.body(Vec::new())?)
     }
 }
+
+#[derive(Debug)]
+pub struct RequestBuilder {
+    url: String,
+    method: Method,
+    headers: Option<Value>,
+    query: Option<Value>,
+    body: Option<Value>,
+}
+
+impl RequestBuilder {
+    pub fn new(url: impl Into<String>) -> Self {
+        RequestBuilder {
+            url: url.into(),
+            method: Method::POST,
+            headers: None,
+            query: None,
+            body: None,
+        }
+    }
+
+    pub fn method(mut self, method: Method) -> Self {
+        self.method = method;
+        self
+    }
+
+    pub fn headers(mut self, headers: Value) -> Self {
+        self.headers = Some(headers);
+        self
+    }
+
+    pub fn query(mut self, query: Value) -> Self {
+        self.query = Some(query);
+        self
+    }
+
+    pub fn body(mut self, body: Value) -> Self {
+        self.body = Some(body);
+        self
+    }
+
+    pub fn build(self) -> Result<Request<Vec<u8>>> {
+        build_request(&self.url, self.method, self.headers, self.query, self.body)
+    }
+}

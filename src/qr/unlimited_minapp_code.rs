@@ -131,9 +131,8 @@ use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
     new_type::{NonQueryPagePath, SceneString},
-    utils::build_request,
+    utils::RequestBuilder,
 };
-use http::Method;
 use http::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -399,13 +398,11 @@ impl Qr {
             env_version: args.env_version,
         })?;
 
-        let request = build_request(
-            constants::UNLIMITIED_QR_CODE_ENDPOINT,
-            Method::POST,
-            Some(headers),
-            Some(query),
-            Some(body),
-        )?;
+        let request = RequestBuilder::new(constants::SHORT_LINK_END_POINT)
+            .headers(headers)
+            .query(query)
+            .body(body)
+            .build()?;
 
         let client = &self.client.client;
 

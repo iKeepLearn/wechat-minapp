@@ -36,9 +36,9 @@ use super::Link;
 use crate::{
     Result, constants,
     error::Error::{self, InternalServer},
-    utils::build_request,
+    utils::RequestBuilder,
 };
-use http::Method;
+
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -239,13 +239,10 @@ impl Link {
             is_permanent: args.is_permanent,
         })?;
 
-        let request = build_request(
-            constants::SHORT_LINK_END_POINT,
-            Method::POST,
-            None,
-            Some(query),
-            Some(body),
-        )?;
+        let request = RequestBuilder::new(constants::SHORT_LINK_END_POINT)
+            .query(query)
+            .body(body)
+            .build()?;
 
         let client = &self.client.client;
 

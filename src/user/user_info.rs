@@ -2,7 +2,7 @@ use super::User;
 use super::credential::Credential;
 use crate::{
     Result, constants, error::Error::InternalServer, response::Response,
-    user::credential::CredentialBuilder, utils::build_request,
+    user::credential::CredentialBuilder, utils::RequestBuilder,
 };
 use http::Method;
 use serde::{Deserialize, Serialize};
@@ -252,13 +252,11 @@ impl User {
         "js_code": code,
         "grant_type": "authorization_code"
         });
-        let request = build_request(
-            constants::AUTHENTICATION_END_POINT,
-            Method::GET,
-            None,
-            Some(query),
-            None,
-        )?;
+
+        let request = RequestBuilder::new(constants::AUTHENTICATION_END_POINT)
+            .method(Method::GET)
+            .query(query)
+            .build()?;
 
         let client = &self.client.client;
 
@@ -352,13 +350,10 @@ impl User {
                 .insert("openid".to_string(), serde_json::json!(open_id));
         }
 
-        let request = build_request(
-            constants::PHONE_END_POINT,
-            Method::POST,
-            None,
-            Some(query),
-            Some(body),
-        )?;
+        let request = RequestBuilder::new(constants::PHONE_END_POINT)
+            .query(query)
+            .body(body)
+            .build()?;
 
         let client = &self.client.client;
 

@@ -15,7 +15,7 @@ use serde_json::from_slice;
 use sha2::Sha256;
 use tracing::{debug, instrument};
 
-use crate::utils::build_request;
+use crate::utils::RequestBuilder;
 use crate::{Result, constants, error::Error::InternalServer, response::Response};
 
 type Aes128CbcDec = Decryptor<Aes128>;
@@ -147,13 +147,10 @@ impl User {
             "sig_method": "hmac_sha256".to_string()
         });
 
-        let request = build_request(
-            constants::CHECK_SESSION_KEY_END_POINT,
-            Method::GET,
-            None,
-            Some(query),
-            None,
-        )?;
+        let request = RequestBuilder::new(constants::CHECK_SESSION_KEY_END_POINT)
+            .query(query)
+            .method(Method::GET)
+            .build()?;
 
         let client = &self.client.client;
 
@@ -186,13 +183,10 @@ impl User {
             "sig_method": "hmac_sha256".to_string()
         });
 
-        let request = build_request(
-            constants::RESET_SESSION_KEY_END_POINT,
-            Method::GET,
-            None,
-            Some(query),
-            None,
-        )?;
+        let request = RequestBuilder::new(constants::RESET_SESSION_KEY_END_POINT)
+            .query(query)
+            .method(Method::GET)
+            .build()?;
 
         let client = &self.client.client;
         let response = client.execute(request).await?;
