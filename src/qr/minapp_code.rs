@@ -132,13 +132,8 @@
 //! 建议在生产环境中妥善处理这些错误。
 
 use super::Qr;
-use crate::{
-    Result, constants,
-    error::Error::{self, InternalServer},
-    new_type::PagePath,
-    utils::RequestBuilder,
-};
-
+use crate::utils::{RequestBuilder, ResponseExt};
+use crate::{Result, constants, error::Error, new_type::PagePath};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -488,14 +483,12 @@ impl Qr {
 
         debug!("response: {:#?}", response);
 
-        if response.status().is_success() {
-            Ok(QrCode {
-                buffer: response.into_body(),
-            })
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body).to_string();
-            Err(InternalServer(message))
+        let buffer = response.to_raw()?;
+        if buffer.len() > 2048 {
+            return Ok(QrCode { buffer });
         }
+        Err(Error::InternalServer(
+            String::from_utf8_lossy(&buffer).to_string(),
+        ))
     }
 }

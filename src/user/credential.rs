@@ -15,8 +15,8 @@ use serde_json::from_slice;
 use sha2::Sha256;
 use tracing::{debug, instrument};
 
-use crate::utils::RequestBuilder;
-use crate::{Result, constants, error::Error::InternalServer, response::Response};
+use crate::utils::{RequestBuilder, ResponseExt};
+use crate::{Result, constants};
 
 type Aes128CbcDec = Decryptor<Aes128>;
 
@@ -100,35 +100,6 @@ impl std::fmt::Debug for Credential {
     }
 }
 
-#[derive(Deserialize)]
-pub(crate) struct CredentialBuilder {
-    #[serde(rename = "openid")]
-    open_id: String,
-    session_key: String,
-    #[serde(rename = "unionid")]
-    union_id: Option<String>,
-}
-
-impl CredentialBuilder {
-    pub(crate) fn build(self) -> Credential {
-        Credential {
-            open_id: self.open_id,
-            session_key: self.session_key,
-            union_id: self.union_id,
-        }
-    }
-}
-
-impl std::fmt::Debug for CredentialBuilder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CredentialBuilder")
-            .field("open_id", &self.open_id)
-            .field("session_key", &"********")
-            .field("union_id", &self.union_id)
-            .finish()
-    }
-}
-
 type HmacSha256 = Hmac<Sha256>;
 
 impl User {
@@ -157,14 +128,7 @@ impl User {
         let response = client.execute(request).await?;
 
         debug!("response: {:#?}", response);
-
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
-            Err(crate::error::Error::InternalServer(message))
-        }
+        response.to_json::<()>()
     }
 
     /// 重置用户的 session_key
@@ -192,19 +156,6 @@ impl User {
         let response = client.execute(request).await?;
         debug!("response: {:#?}", &response);
 
-        if response.status().is_success() {
-            let (_parts, body) = response.into_parts();
-            let json = serde_json::from_slice::<Response<CredentialBuilder>>(&body.to_vec())?;
-
-            let credential = json.extract()?.build();
-
-            debug!("credential: {:#?}", credential);
-
-            Ok(credential)
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
-            Err(InternalServer(message))
-        }
+        response.to_json::<Credential>()
     }
 }

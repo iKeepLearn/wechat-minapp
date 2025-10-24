@@ -1,6 +1,6 @@
 [package]
 name = "wechat-minapp"
-version = "3.2.3"
+version = "3.2.5"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
 description = "A rust sdk for wechat miniprogram server api"

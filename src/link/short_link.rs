@@ -33,12 +33,8 @@
 //!
 
 use super::Link;
-use crate::{
-    Result, constants,
-    error::Error::{self, InternalServer},
-    utils::RequestBuilder,
-};
-
+use crate::utils::{RequestBuilder, ResponseExt};
+use crate::{Result, constants, error::Error};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -249,23 +245,6 @@ impl Link {
         let response = client.execute(request).await?;
 
         debug!("response: {:#?}", response);
-
-        if response.status().is_success() {
-            let (_parts, body) = response.into_parts();
-            debug!("short link response body: {:?}", &body);
-            eprintln!(
-                "short link response body: {:?}",
-                String::from_utf8_lossy(&body)
-            );
-            let json = serde_json::from_slice::<ShortLink>(&body)?;
-
-            debug!("short link: {:#?}", &json);
-
-            Ok(json)
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body).to_string();
-            Err(InternalServer(message))
-        }
+        response.to_json::<ShortLink>()
     }
 }

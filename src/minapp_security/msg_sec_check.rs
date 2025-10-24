@@ -50,7 +50,7 @@
 //! ```
 
 use super::{Label, MinappSecurity, Suggest};
-use crate::utils::RequestBuilder;
+use crate::utils::{RequestBuilder, ResponseExt};
 use crate::{Result, constants, error::Error};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -538,19 +538,7 @@ impl MinappSecurity {
         let response = client.execute(request).await?;
 
         debug!("response: {:#?}", response);
-
-        if response.status().is_success() {
-            let (_parts, body) = response.into_parts();
-            let json = serde_json::from_slice::<MsgSecCheckResult>(&body.to_vec())?;
-
-            debug!("msg_sec_check result: {:#?}", json);
-
-            Ok(json)
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
-            Err(Error::InternalServer(message))
-        }
+        response.to_json::<MsgSecCheckResult>()
     }
 }
 

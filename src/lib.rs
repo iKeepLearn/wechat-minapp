@@ -49,7 +49,6 @@
 //!
 //!
 
-mod response;
 mod utils;
 
 pub mod client;

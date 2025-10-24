@@ -34,7 +34,7 @@ async fn test_msg_sec_check_normal_content() {
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
     let result = result.unwrap();
-    println!("正常内容检测结果: {:?}", result);
+    eprintln!("正常内容检测结果: {:?}", result);
 
     assert!(result.is_success());
     assert!(result.errcode == 0);
@@ -61,7 +61,7 @@ async fn test_msg_sec_check_with_title_and_nickname() {
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
     let result = result.unwrap();
-    println!("带标题和昵称的检测结果: {:?}", result);
+    eprintln!("带标题和昵称的检测结果: {:?}", result);
 
     assert!(result.is_success());
 }
@@ -84,7 +84,7 @@ async fn test_msg_sec_check_profile_scene() {
     assert!(result.is_ok(), "API调用失败: {:?}", result.err());
 
     let result = result.unwrap();
-    println!("资料场景检测结果: {:?}", result);
+    eprintln!("资料场景检测结果: {:?}", result);
 
     assert!(result.is_success());
 }
@@ -148,7 +148,7 @@ async fn test_msg_sec_check_content_length_boundary() {
     assert!(result.is_ok(), "边界长度内容检测失败: {:?}", result.err());
 
     let result = result.unwrap();
-    println!("边界长度内容检测结果: {:?}", result);
+    eprintln!("边界长度内容检测结果: {:?}", result);
 
     assert!(result.is_success());
 }
@@ -165,7 +165,7 @@ async fn test_msg_sec_check_result_structure() {
         .unwrap();
 
     let result = security.msg_sec_check(&args).await;
-    print!("返回结果结构检测结果: {:?}", result);
+    eprint!("返回结果结构检测结果: {:?}", result);
     let result = result.unwrap();
 
     assert_eq!(result.errcode, 0);

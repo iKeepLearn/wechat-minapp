@@ -1,5 +1,6 @@
-use crate::{Result, constants};
-use http::{HeaderValue, Method, Request, header};
+use crate::{Result, constants, error::Error};
+use http::{HeaderValue, Method, Request, Response, header};
+use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use tracing::debug;
 use url::Url;
@@ -122,5 +123,42 @@ impl RequestBuilder {
 
     pub fn build(self) -> Result<Request<Vec<u8>>> {
         build_request(&self.url, self.method, self.headers, self.query, self.body)
+    }
+}
+
+pub trait ResponseExt {
+    fn to_json<T>(self) -> Result<T>
+    where
+        T: DeserializeOwned + std::fmt::Debug;
+
+    fn to_raw(self) -> Result<Vec<u8>>;
+}
+
+impl ResponseExt for Response<Vec<u8>> {
+    fn to_json<T>(self) -> Result<T>
+    where
+        T: DeserializeOwned + std::fmt::Debug,
+    {
+        if self.status().is_success() {
+            let (_parts, body) = self.into_parts();
+            let json = serde_json::from_slice::<T>(&body.to_vec())?;
+
+            debug!("msg_sec_check result: {:#?}", json);
+
+            Ok(json)
+        } else {
+            let (_parts, body) = self.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(Error::InternalServer(message))
+        }
+    }
+    fn to_raw(self) -> Result<Vec<u8>> {
+        if self.status().is_success() {
+            Ok(self.into_body())
+        } else {
+            let (_parts, body) = self.into_parts();
+            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
+            Err(Error::InternalServer(message))
+        }
     }
 }

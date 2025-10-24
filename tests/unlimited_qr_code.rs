@@ -179,8 +179,6 @@ async fn test_unlimited_qr_code_with_only_width() {
     let result = qr.unlimited_qr_code(args).await;
     assert!(result.is_ok());
     let qr_code = result.unwrap();
-    eprintln!("qr_code {:?}", qr_code);
-    eprintln!("qr_code {:?}", String::from_utf8_lossy(qr_code.buffer()));
     tokio::fs::write(
         "test_unlimited_qr_code_with_only_width.png",
         qr_code.buffer(),

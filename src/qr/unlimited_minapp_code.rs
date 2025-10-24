@@ -127,11 +127,11 @@
 //! 建议在生产环境中妥善处理这些错误。
 
 use super::{MinappEnvVersion, Qr, QrCode, Rgb};
+use crate::utils::{RequestBuilder, ResponseExt};
 use crate::{
     Result, constants,
-    error::Error::{self, InternalServer},
+    error::Error,
     new_type::{NonQueryPagePath, SceneString},
-    utils::RequestBuilder,
 };
 use http::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
@@ -398,7 +398,7 @@ impl Qr {
             env_version: args.env_version,
         })?;
 
-        let request = RequestBuilder::new(constants::SHORT_LINK_END_POINT)
+        let request = RequestBuilder::new(constants::UNLIMITIED_QR_CODE_ENDPOINT)
             .headers(headers)
             .query(query)
             .body(body)
@@ -409,15 +409,12 @@ impl Qr {
         let response = client.execute(request).await?;
 
         debug!("get unlimited qr code response: {:#?}", response);
-
-        if response.status().is_success() {
-            Ok(QrCode {
-                buffer: response.into_body(),
-            })
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body).to_string();
-            Err(InternalServer(message))
+        let buffer = response.to_raw()?;
+        if buffer.len() > 2048 {
+            return Ok(QrCode { buffer });
         }
+        Err(Error::InternalServer(
+            String::from_utf8_lossy(&buffer).to_string(),
+        ))
     }
 }

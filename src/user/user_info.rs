@@ -1,9 +1,7 @@
 use super::User;
 use super::credential::Credential;
-use crate::{
-    Result, constants, error::Error::InternalServer, response::Response,
-    user::credential::CredentialBuilder, utils::RequestBuilder,
-};
+use crate::utils::{RequestBuilder, ResponseExt};
+use crate::{Result, constants};
 use http::Method;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
@@ -151,34 +149,6 @@ impl Contact {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub(crate) struct ContactBuilder {
-    #[serde(rename = "phone_info")]
-    inner: PhoneInner,
-}
-
-impl ContactBuilder {
-    pub(crate) fn build(self) -> Contact {
-        Contact {
-            phone_number: self.inner.phone_number,
-            pure_phone_number: self.inner.pure_phone_number,
-            country_code: self.inner.country_code,
-            watermark: self.inner.watermark.build(),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct PhoneInner {
-    #[serde(rename = "phoneNumber")]
-    phone_number: String,
-    #[serde(rename = "purePhoneNumber")]
-    pure_phone_number: String,
-    country_code: String,
-    watermark: WatermarkBuilder,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Watermark {
     app_id: String,
@@ -263,20 +233,7 @@ impl User {
         let response = client.execute(request).await?;
         debug!("authentication response: {:#?}", &response);
 
-        if response.status().is_success() {
-            let (_parts, body) = response.into_parts();
-            let json = serde_json::from_slice::<Response<CredentialBuilder>>(&body.to_vec())?;
-
-            let credential = json.extract()?.build();
-
-            debug!("credential: {:#?}", credential);
-
-            Ok(credential)
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
-            Err(InternalServer(message))
-        }
+        response.to_json::<Credential>()
     }
 
     /// 获取用户手机号信息
@@ -360,19 +317,6 @@ impl User {
         let response = client.execute(request).await?;
         debug!("authentication response: {:#?}", &response);
 
-        if response.status().is_success() {
-            let (_parts, body) = response.into_parts();
-            let json = serde_json::from_slice::<Response<ContactBuilder>>(&body.to_vec())?;
-
-            let builder = json.extract()?;
-
-            debug!("contact builder: {:#?}", builder);
-
-            Ok(builder.build())
-        } else {
-            let (_parts, body) = response.into_parts();
-            let message = String::from_utf8_lossy(&body.to_vec()).to_string();
-            Err(InternalServer(message))
-        }
+        response.to_json::<Contact>()
     }
 }
