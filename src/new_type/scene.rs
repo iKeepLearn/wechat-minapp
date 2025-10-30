@@ -14,6 +14,7 @@ pub enum ValidationSceneError {
 const VALID_CHARS: &str =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$&'()*+,/:;=?@-._~";
 
+/// 最大32个可见字符，只支持数字，大小写英文以及部分特殊字符：!#$&'()*+,/:;=?@-._~，其它字符请自行编码为合法字符（因不支持%，中文无法使用 urlencode 处理，请使用其他编码方式）
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SceneString(String);
 
