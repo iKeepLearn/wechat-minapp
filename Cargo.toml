@@ -1,6 +1,6 @@
 [package]
 name = "wechat-minapp"
-version = "3.2.7"
+version = "3.2.8"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
 description = "A rust sdk for wechat miniprogram server api"
@@ -9,6 +9,11 @@ homepage = "https://github.com/ikeeplearn/wechat-minapp"
 repository = "https://github.com/ikeeplearn/wechat-minapp"
 categories = ["asynchronous", "web-programming"]
 keywords = ["minapp", "wechat"]
+
+exclude = [
+    "tests/",
+    "examples/",
+]
 
 [dependencies]
 tokio = { version = "1", features = ["sync"] }
