@@ -1,8 +1,11 @@
-use crate::{Result, constants, error::Error};
+use crate::{
+    Result, constants,
+    error::{Error, ErrorCode},
+};
 use http::{HeaderValue, Method, Request, Response, header};
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Map, Value};
-use tracing::debug;
+use tracing::{debug, error};
 use url::Url;
 
 pub fn parse_url(url: impl Into<String>) -> Result<Url> {
@@ -141,11 +144,11 @@ impl ResponseExt for Response<Vec<u8>> {
     {
         if self.status().is_success() {
             let (_parts, body) = self.into_parts();
-            let json = serde_json::from_slice::<T>(&body.to_vec())?;
+            let json = serde_json::from_slice::<MpResponse<T>>(&body.to_vec())?;
 
             debug!("msg_sec_check result: {:#?}", json);
 
-            Ok(json)
+            Ok(json.extract()?)
         } else {
             let (_parts, body) = self.into_parts();
             let message = String::from_utf8_lossy(&body.to_vec()).to_string();
@@ -159,6 +162,36 @@ impl ResponseExt for Response<Vec<u8>> {
             let (_parts, body) = self.into_parts();
             let message = String::from_utf8_lossy(&body.to_vec()).to_string();
             Err(Error::InternalServer(message))
+        }
+    }
+}
+
+/// 微信小程序返回的数据结构
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum MpResponse<T> {
+    Success {
+        #[serde(flatten)]
+        data: T,
+    },
+    Error {
+        #[serde(rename = "errcode")]
+        code: ErrorCode,
+        #[serde(rename = "errmsg")]
+        message: String,
+    },
+}
+
+impl<T> MpResponse<T> {
+    /// 获取微信小程序返回的数据
+    pub(crate) fn extract(self) -> Result<T> {
+        match self {
+            Self::Success { data } => Ok(data),
+            Self::Error { code, message } => {
+                error!("微信小程序返回错误: code={}, message={}", code, message);
+
+                Err((code, message).into())
+            }
         }
     }
 }
