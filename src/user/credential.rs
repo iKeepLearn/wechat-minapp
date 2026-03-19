@@ -22,7 +22,7 @@ type Aes128CbcDec = Decryptor<Aes128>;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Credential {
-    #[serde(rename="openid")]
+    #[serde(rename = "openid")]
     open_id: String,
     session_key: String,
     #[serde(skip_serializing_if = "Option::is_none")]

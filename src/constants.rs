@@ -105,3 +105,11 @@ pub const UNLIMITIED_QR_CODE_ENDPOINT: &str = "https://api.weixin.qq.com/wxa/get
 
 /// base url
 pub const END_POINT_BASE_URL: &str = "https://api.weixin.qq.com";
+
+/// 发送小程序模板消息的 API 端点
+///
+/// # 官方文档
+///
+/// [发送小程序模板消息](https://developers.weixin.qq.com/miniprogram/dev/server/API/mp-message-management/subscribe-message/api_sendmessage.html)
+pub const TEMPLATE_MESSAGE_SEND_END_POINT: &str =
+    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";

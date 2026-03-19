@@ -11,6 +11,7 @@
 //! - 生成小程序码
 //! - 内容安全检测  
 //! - 生成小程序链接
+//! - 发送模板消息
 //!
 //! # 特性
 //! - 异步支持
@@ -58,5 +59,6 @@ pub mod link;
 pub mod minapp_security;
 pub mod new_type;
 pub mod qr;
+pub mod template_message;
 pub mod user;
 pub type Result<T> = std::result::Result<T, error::Error>;
