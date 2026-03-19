@@ -1,9 +1,9 @@
 [package]
 name = "wechat-minapp"
-version = "3.3.0"
+version = "3.3.1"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
-description = "A rust sdk for wechat miniprogram server api"
+description = "微信小程序服务端API SDK"
 license = "MIT"
 homepage = "https://github.com/ikeeplearn/wechat-minapp"
 repository = "https://github.com/ikeeplearn/wechat-minapp"
@@ -16,13 +16,13 @@ exclude = [
 ]
 
 [dependencies]
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1.50.0", features = ["sync"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-chrono = { version  = "0.4", features = ["serde"] }
-tracing = "0.1"
-reqwest = { version = "^0.12.9", features = ["json"] }
+serde_json = "1.0.149"
+thiserror = "2.0.18"
+chrono = { version  = "0.4.44", features = ["serde"] }
+tracing = "0.1.44"
+reqwest = { version = "^0.13.2", features = ["json"] }
 aes = "^0.8.4"
 async-trait = "0.1.89"
 base64 = "^0.22.1"
@@ -31,11 +31,11 @@ hex = "0.4.3"
 hmac = "0.12.1"
 serde_repr = "^0.1.19"
 sha2 = "0.10.8"
-http = "1.3.1"
-url = "2.5"
-strum = { version = "^0.27.2", features = ['derive'] }
+http = "1.4.0"
+url = "2.5.8"
+strum = { version = "^0.28.0", features = ['derive'] }
 
 [dev-dependencies]
-actix-web = "4"
+actix-web = "4.13.0"
 dotenv = "0.15"
 tokio = { version = "1.0", features = ["full"] }
