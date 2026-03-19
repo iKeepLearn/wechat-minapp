@@ -33,7 +33,7 @@ serde_repr = "^0.1.19"
 sha2 = "0.10.8"
 http = "1.4.0"
 url = "2.5.8"
-strum = { version = "^0.28.0", features = ['derive'] }
+strum = { version = "0.28.0", features = ['derive'] }
 
 [dev-dependencies]
 actix-web = "4.13.0"
