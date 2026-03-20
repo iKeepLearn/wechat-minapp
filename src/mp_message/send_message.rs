@@ -1,13 +1,13 @@
-//! 微信小程序模板消息发送模块
+//! 微信服务号模板消息发送模块
 //!
 //! 提供发送模板消息和订阅消息的功能，用于向用户发送服务通知。
-//! [官方文档](https://developers.weixin.qq.com/miniprogram/dev/server/API/mp-message-management/subscribe-message/api_sendmessage.html)
+//! [官方文档](https://developers.weixin.qq.com/doc/service/api/notify/template/api_sendtemplatemessage.html)
 //!
 //! ## 示例
 //!
 //! ```no_run
-//! use wechat_minapp::client::WechatMinapp;
-//! use wechat_minapp::template_message::{TemplateMessage, SendMessageArgs};
+//! use wechat_mp_sdk::client::WechatMinapp;
+//! use wechat_mp_sdk::mp_message::{TemplateMessage, SendMessageArgs};
 //! use serde_json::json;
 //!
 //! #[tokio::main]
@@ -15,7 +15,7 @@
 //!     // 初始化客户端
 //!     let app_id = "your_app_id";
 //!     let secret = "your_app_secret";
-//!     let client = WechatMinapp::new(app_id, secret);
+//!     let client = WechatMp::new(app_id, secret);
 //!     let message = TemplateMessage::new(client);
 //!
 //!     // 构建模板消息数据
@@ -28,10 +28,8 @@
 //!     let args = SendMessageArgs::builder()
 //!         .touser("openid")
 //!         .template_id("template_id")
-//!         .page("pages/index/index")
+//!         .url("https://example.com")
 //!         .data(data)
-//!         .miniprogram_state("formal")
-//!         .lang("zh_CN")
 //!         .build()?;
 //!
 //!     // 发送模板消息
@@ -53,12 +51,21 @@ use tracing::debug;
 /// 用于发送一次性订阅消息的结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendMessageArgs {
-    pub touser: String,                    // 接收者openid
-    pub template_id: String,               // 模板ID
-    pub page: Option<String>,              // 点击跳转页面
-    pub data: serde_json::Value,           // 模板数据
-    pub miniprogram_state: Option<String>, // 小程序状态
-    pub lang: Option<String>,              // 语言
+    pub touser: String,                     // 接收者openid
+    pub template_id: String,                // 模板ID
+    pub url: Option<String>,                // 点击跳转页面
+    pub data: serde_json::Value,            // 模板数据
+    pub miniprogram: Option<MinappProgram>, // 跳转服务号时填写
+    pub client_msg_id: Option<String>,      // 防重入id
+}
+
+/// 服务号信息
+///
+/// 用于指定跳转服务号时的目标
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MinappProgram {
+    pub appid: String,    // 服务号appid
+    pub pagepath: String, // 服务号跳转路径
 }
 
 /// 订阅消息发送响应
@@ -74,10 +81,10 @@ pub struct SendMessageResponse {
 pub struct SendMessageArgsBuilder {
     touser: Option<String>,
     template_id: Option<String>,
-    page: Option<String>,
+    url: Option<String>,
     data: Option<serde_json::Value>,
-    miniprogram_state: Option<String>,
-    lang: Option<String>,
+    miniprogram: Option<MinappProgram>,
+    client_msg_id: Option<String>,
 }
 
 impl SendMessageArgs {
@@ -97,8 +104,8 @@ impl SendMessageArgs {
     }
 
     /// 获取跳转页面
-    pub fn page(&self) -> Option<&String> {
-        self.page.as_ref()
+    pub fn url(&self) -> Option<&String> {
+        self.url.as_ref()
     }
 
     /// 获取模板数据
@@ -106,14 +113,14 @@ impl SendMessageArgs {
         &self.data
     }
 
-    /// 获取小程序状态
-    pub fn miniprogram_state(&self) -> Option<&String> {
-        self.miniprogram_state.as_ref()
+    /// 获取服务号信息
+    pub fn miniprogram(&self) -> Option<MinappProgram> {
+        self.miniprogram.clone()
     }
 
-    /// 获取语言
-    pub fn lang(&self) -> Option<&String> {
-        self.lang.as_ref()
+    /// 获取防重入id
+    pub fn client_msg_id(&self) -> Option<&String> {
+        self.client_msg_id.as_ref()
     }
 }
 
@@ -135,8 +142,8 @@ impl SendMessageArgsBuilder {
     }
 
     /// 设置跳转页面
-    pub fn page(mut self, page: impl Into<String>) -> Self {
-        self.page = Some(page.into());
+    pub fn url(mut self, url: impl Into<String>) -> Self {
+        self.url = Some(url.into());
         self
     }
 
@@ -146,19 +153,17 @@ impl SendMessageArgsBuilder {
         self
     }
 
-    /// 设置小程序状态
-    ///
-    /// 可选值：formal（正式版），trial（体验版），developer（开发版）
-    pub fn miniprogram_state(mut self, state: impl Into<String>) -> Self {
-        self.miniprogram_state = Some(state.into());
+    /// 设置跳转服务号
+    pub fn miniprogram(mut self, minapp: MinappProgram) -> Self {
+        self.miniprogram = Some(minapp);
         self
     }
 
-    /// 设置语言
+    /// 防重入id
     ///
-    /// 可选值：zh_CN（简体中文），en_US（英文），zh_HK（繁体中文），zh_TW（繁体中文）
-    pub fn lang(mut self, lang: impl Into<String>) -> Self {
-        self.lang = Some(lang.into());
+    /// 对于同一个openid + client_msg_id, 只发送一条消息,10分钟有效,超过10分钟不保证效果。若无防重入需求，可不填
+    pub fn client_msg_id(mut self, client_msg_id: impl Into<String>) -> Self {
+        self.client_msg_id = Some(client_msg_id.into());
         self
     }
 
@@ -182,10 +187,10 @@ impl SendMessageArgsBuilder {
         Ok(SendMessageArgs {
             touser,
             template_id,
-            page: self.page,
+            url: self.url,
             data,
-            miniprogram_state: self.miniprogram_state,
-            lang: self.lang,
+            miniprogram: self.miniprogram,
+            client_msg_id: self.client_msg_id,
         })
     }
 
@@ -203,10 +208,10 @@ impl SendMessageArgsBuilder {
                 if let Value::Object(item) = value {
                     if let Some(val) = item.get("value") {
                         if let Value::String(s) = val
-                            && s.len() > 50
+                            && s.len() > 20
                         {
                             return Err(Error::InvalidParameter(format!(
-                                "字段'{}'的值长度不能超过50个字符",
+                                "字段'{}'的值长度不能超过20个字符",
                                 key
                             )));
                         }
@@ -235,7 +240,7 @@ impl SendMessageArgsBuilder {
 impl TemplateMessage {
     /// 发送模板消息
     ///
-    /// 调用微信小程序模板消息发送接口
+    /// 调用微信服务号模板消息发送接口
     ///
     /// # 参数
     ///
@@ -248,13 +253,13 @@ impl TemplateMessage {
     /// # 示例
     ///
     /// ```no_run
-    /// use wechat_minapp::client::WechatMinapp;
-    /// use wechat_minapp::template_message::{TemplateMessage, SendMessageArgs};
+    /// use wechat_mp_sdk::client::WechatMinapp;
+    /// use wechat_mp_sdk::mp_message::{TemplateMessage, SendMessageArgs};
     /// use serde_json::json;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let client = WechatMinapp::new("app_id", "secret");
+    ///     let client = WechatMp::new("app_id", "secret");
     ///     let message = TemplateMessage::new(client);
     ///
     ///     let data = json!({
@@ -273,7 +278,7 @@ impl TemplateMessage {
     /// }
     /// ```
     pub async fn send_message(&self, args: SendMessageArgs) -> Result<SendMessageResponse> {
-        debug!("send template message args {:?}", &args);
+        debug!("send mp message args {:?}", &args);
 
         let query = serde_json::json!({
             "access_token": self.client.token().await?
@@ -281,7 +286,7 @@ impl TemplateMessage {
 
         let body = serde_json::to_value(args)?;
 
-        let request = RequestBuilder::new(constants::TEMPLATE_MESSAGE_SEND_END_POINT)
+        let request = RequestBuilder::new(constants::MP_MESSAGE_SEND_END_POINT)
             .query(query)
             .body(body)
             .build()?;

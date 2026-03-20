@@ -20,6 +20,7 @@ A rust sdk for wechat miniprogram server api
 - 生成小程序码
 - 内容安全检测  
 - 生成小程序链接
+- 发送小程序和服务号模板消息
 
 ## 用法
 

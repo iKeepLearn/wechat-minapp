@@ -87,7 +87,7 @@ pub const MSG_SEC_CHECK_END_POINT: &str = "https://api.weixin.qq.com/wxa/msg_sec
 
 /// HTTP 客户端的 User-Agent 字符串
 pub const HTTP_CLIENT_USER_AGENT: &str =
-    "wechat-minapp/3.2.5 (A rust sdk for wechat miniprogram server api)";
+    "wechat-minapp/3.4.1 (A rust sdk for wechat miniprogram server api)";
 
 /// 获取 ShortLink 的 API 端点
 ///
@@ -113,3 +113,11 @@ pub const END_POINT_BASE_URL: &str = "https://api.weixin.qq.com";
 /// [发送小程序模板消息](https://developers.weixin.qq.com/miniprogram/dev/server/API/mp-message-management/subscribe-message/api_sendmessage.html)
 pub const TEMPLATE_MESSAGE_SEND_END_POINT: &str =
     "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";
+
+/// 发送服务号模板消息的 API 端点
+///
+/// # 官方文档
+///
+/// [发送服务号模板消息](https://developers.weixin.qq.com/doc/service/api/notify/template/api_sendtemplatemessage.html)
+pub const MP_MESSAGE_SEND_END_POINT: &str =
+    "https://api.weixin.qq.com/cgi-bin/message/template/send";

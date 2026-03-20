@@ -1,9 +1,9 @@
 [package]
 name = "wechat-minapp"
-version = "3.3.1"
+version = "3.4.1"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
-description = "微信小程序服务端API SDK"
+description = "微信小程序和服务号服务端API SDK"
 license = "MIT"
 homepage = "https://github.com/ikeeplearn/wechat-minapp"
 repository = "https://github.com/ikeeplearn/wechat-minapp"

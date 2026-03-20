@@ -11,7 +11,7 @@
 //! - 生成小程序码
 //! - 内容安全检测  
 //! - 生成小程序链接
-//! - 发送模板消息
+//! - 发送小程序和服务号模板消息
 //!
 //! # 特性
 //! - 异步支持
@@ -57,6 +57,7 @@ pub mod constants;
 pub mod error;
 pub mod link;
 pub mod minapp_security;
+pub mod mp_message;
 pub mod new_type;
 pub mod qr;
 pub mod template_message;
