@@ -1,6 +1,6 @@
 [package]
 name = "wechat-minapp"
-version = "3.4.2"
+version = "3.4.3"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
 description = "微信小程序和服务号服务端API SDK"

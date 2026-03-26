@@ -134,7 +134,7 @@ async fn test_msg_sec_check_content_length_boundary() {
     let client = setup_client();
     let security = MinappSecurity::new(client);
     let boundary_content = "check__content__long".repeat(125);
-    assert_eq!(boundary_content.len(), 2500);
+    assert_eq!(boundary_content.chars().count(), 2500);
 
     let args = Args::builder()
         .content(&boundary_content)

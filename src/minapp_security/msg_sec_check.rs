@@ -226,7 +226,7 @@ impl ArgsBuilder {
             .ok_or(Error::InvalidParameter("openid 是必填参数".to_string()))?;
 
         // 内容长度验证
-        if content.len() > 2500 {
+        if content.chars().count() > 2500 {
             return Err(Error::InvalidParameter(
                 "content 长度不能超过2500字".to_string(),
             ));
@@ -278,12 +278,12 @@ impl Args {
 
     /// 获取内容长度
     pub fn content_length(&self) -> usize {
-        self.content.len()
+        self.content.chars().count()
     }
 
     /// 验证参数是否有效
     pub fn validate(&self) -> Result<()> {
-        if self.content.len() > 2500 {
+        if self.content.chars().count() > 2500 {
             return Err(Error::InvalidParameter(
                 "content 长度不能超过2500字".to_string(),
             ));

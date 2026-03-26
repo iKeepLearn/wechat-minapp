@@ -193,7 +193,7 @@ impl SendMessageArgsBuilder {
     fn validate_data(data: &Value) -> Result<()> {
         if let Value::Object(map) = data {
             for (key, value) in map {
-                if key.len() > 20 {
+                if key.chars().count() > 20 {
                     return Err(Error::InvalidParameter(format!(
                         "字段名'{}'长度不能超过20个字符",
                         key
@@ -203,7 +203,7 @@ impl SendMessageArgsBuilder {
                 if let Value::Object(item) = value {
                     if let Some(val) = item.get("value") {
                         if let Value::String(s) = val
-                            && s.len() > 50
+                            && s.chars().count() > 50
                         {
                             return Err(Error::InvalidParameter(format!(
                                 "字段'{}'的值长度不能超过50个字符",
