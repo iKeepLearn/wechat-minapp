@@ -187,6 +187,7 @@ impl HttpClient for ReqwestHttpClient {
         let reqwest_req: ReqwestRequest = req.try_into()?;
 
         // 方便 cargo test 输出
+        #[cfg(test)]
         eprintln!("reqwest url: {:?}", reqwest_req.url());
 
         let reqwest_res = self.client.execute(reqwest_req).await?;

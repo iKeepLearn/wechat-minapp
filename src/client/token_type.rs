@@ -12,6 +12,7 @@
 
 use super::access_token::AccessTokenBuilder;
 use super::{AccessToken, AppConfig, HttpClient};
+use crate::utils::MpResponse;
 use crate::utils::build_request;
 use crate::{Result, constants};
 use async_trait::async_trait;
@@ -71,8 +72,11 @@ impl TokenType for StableToken {
 
         let response = self.client.execute(request).await?;
         let response_body = response.into_body();
-        let token_builder = serde_json::from_slice::<AccessTokenBuilder>(&response_body)?;
-        let token = token_builder.build();
+        let token_builder =
+            serde_json::from_slice::<MpResponse<AccessTokenBuilder>>(&response_body)?;
+        // let token = token_builder.build();
+        let token = token_builder.extract()?;
+        let token = token.build();
         debug!("stable access token :{:?}", token);
         Ok(token)
     }
@@ -120,8 +124,14 @@ impl TokenType for NonStableToken {
 
         let response = self.client.execute(request).await?;
         let response_body = response.into_body();
-        let token_builder = serde_json::from_slice::<AccessTokenBuilder>(&response_body)?;
-        Ok(token_builder.build())
+        let token_builder =
+            serde_json::from_slice::<MpResponse<AccessTokenBuilder>>(&response_body)?;
+        // let token = token_builder.build();
+        let token = token_builder.extract()?;
+        let token = token.build();
+        Ok(token)
+        // let token_builder = serde_json::from_slice::<AccessTokenBuilder>(&response_body)?;
+        // Ok(token_builder.build())
     }
 
     /// 获取应用配置

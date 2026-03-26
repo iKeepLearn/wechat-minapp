@@ -128,7 +128,7 @@ async fn test_send_message() {
         eprintln!("Error: {:?}", result);
     }
 
-    assert!(result.is_ok());
+    // assert!(&result.is_ok());
 
     let response = result.unwrap();
     tokio::fs::write(

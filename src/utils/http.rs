@@ -144,9 +144,13 @@ impl ResponseExt for Response<Vec<u8>> {
     {
         if self.status().is_success() {
             let (_parts, body) = self.into_parts();
+
             let json = serde_json::from_slice::<MpResponse<T>>(&body.to_vec())?;
 
             debug!("msg_sec_check result: {:#?}", json);
+
+            #[cfg(test)]
+            eprintln!("msg_sec_check result: {:#?}", json);
 
             Ok(json.extract()?)
         } else {
@@ -169,7 +173,7 @@ impl ResponseExt for Response<Vec<u8>> {
 /// 微信小程序返回的数据结构
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-pub(crate) enum MpResponse<T> {
+pub enum MpResponse<T> {
     Success {
         #[serde(flatten)]
         data: T,
