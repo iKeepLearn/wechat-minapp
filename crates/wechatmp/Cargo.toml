@@ -1,0 +1,20 @@
+[package]
+name = "wechatmp"
+version = "1.0.1"
+edition = "2024"
+authors = ["cc <i@artista.cc>"]
+description = "微信服务号服务端API SDK"
+license = "MIT"
+homepage = "https://github.com/ikeeplearn/wechat-minapp"
+repository = "https://github.com/ikeeplearn/wechat-minapp"
+categories = ["asynchronous", "web-programming"]
+keywords = ["wechat", "mp", "official_account"]
+
+[dependencies]
+wechat-core = { version = "1.0.2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.149"
+tracing = "0.1.44"
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full"] }
