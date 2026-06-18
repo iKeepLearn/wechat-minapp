@@ -32,13 +32,13 @@
 ### # 查询参数 Query String Parameters
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | access_token | string | 是 | 接口调用凭证，可使用 access_token、component_access_token、authorizer_access_token |
 
 ### # 请求体 Request Payload
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | cgi_path | string | 是 | api的请求地址，例如"/cgi-bin/message/custom/send";不要前缀“https://api.weixin.qq.com” ，也不要漏了"/",否则都会76003的报错 |
 
 ## # 3. 返回参数
@@ -46,7 +46,7 @@
 ### # 返回体 Response Payload
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | errcode | number | 返回码 |
 | errmsg | string | 错误信息 |
 | quota | object | quota详情 |
@@ -58,7 +58,7 @@
 quota详情
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | daily_limit | number | 当天该账号可调用该接口的次数 |
 | used | number | 当天已经调用的次数 |
 | remain | number | 当天剩余调用次数 |
@@ -68,7 +68,7 @@ quota详情
 普通调用频率限制
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | call_count | number | 周期内可调用数量，单位 次 |
 | refresh_second | number | 更新周期，单位 秒 |
 
@@ -77,7 +77,7 @@ quota详情
 代调用频率限制
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | call_count | number | 周期内可调用数量，单位 次 |
 | refresh_second | number | 更新周期，单位 秒 |
 
@@ -106,10 +106,9 @@ quota详情
 以下是本接口的错误码列表，其他错误码可参考 [通用错误码](https://developers.weixin.qq.com/doc/oplatform/developers/errCode/) ；调用接口遇到报错，可使用官方提供的 [API 诊断工具](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_errcode)  辅助定位和分析问题。
 
 | 错误码 | 错误描述 | 解决方案 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | 0 | ok | ok |
 | 76021 | cgi_path not found, please check | cgi_path填错了 |
 | 76022 | could not use this cgi_path，no permission | 当前调用接口使用的token与api所属账号不符，详情可看注意事项的说明 |
 
 ## # 7. 适用范围
-

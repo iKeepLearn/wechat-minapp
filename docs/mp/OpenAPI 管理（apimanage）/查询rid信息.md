@@ -32,13 +32,13 @@
 ### # 查询参数 Query String Parameters
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | access_token | string | 是 | 接口调用凭证，可使用 access_token、component_access_token、authorizer_access_token |
 
 ### # 请求体 Request Payload
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | rid | string | 是 | 调用接口报错返回的rid |
 
 ## # 3. 返回参数
@@ -46,7 +46,7 @@
 ### # 返回体 Response Payload
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | errcode | number | 返回码 |
 | errmsg | string | 错误信息 |
 | request | object | 该rid对应的请求详情 |
@@ -56,7 +56,7 @@
 该rid对应的请求详情
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | invoke_time | number | 发起请求的时间戳 |
 | cost_in_ms | number | 请求毫秒级耗时 |
 | request_url | string | 请求的URL参数 |
@@ -85,7 +85,7 @@
 以下是本接口的错误码列表，其他错误码可参考 [通用错误码](https://developers.weixin.qq.com/doc/oplatform/developers/errCode/) ；调用接口遇到报错，可使用官方提供的 [API 诊断工具](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_errcode)  辅助定位和分析问题。
 
 | 错误码 | 错误描述 | 解决方案 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | 0 | ok | ok |
 | 76001 | rid not found | rid不存在 |
 | 76002 | rid is error | rid为空或者格式错误 |
@@ -93,4 +93,3 @@
 | 76004 | rid time is error | rid过期，仅支持持续7天内的rid |
 
 ## # 7. 适用范围
-

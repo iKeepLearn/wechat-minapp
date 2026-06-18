@@ -31,7 +31,7 @@
 ### # 请求体 Request Payload
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | appid | string | 是 | 要被清空的账号的appid |
 | appsecret | string | 是 | 唯一凭证密钥，即 AppSecret |
 
@@ -40,7 +40,7 @@
 ### # 返回体 Response Payload
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | errcode | number | 错误码 |
 | errmsg | string | 错误信息 |
 
@@ -67,7 +67,7 @@
 以下是本接口的错误码列表，其他错误码可参考 [通用错误码](https://developers.weixin.qq.com/doc/oplatform/developers/errCode/) ；调用接口遇到报错，可使用官方提供的 [API 诊断工具](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_errcode)  辅助定位和分析问题。
 
 | 错误码 | 错误描述 | 解决方案 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | -1 | system error | 系统繁忙，此时请开发者稍候再试 |
 | 40013 | invalid appid | 不合法的 AppID ，请开发者检查 AppID 的正确性，避免异常字符，注意大小写 |
 | 41002 | appid missing | 缺少 appid 参数 |
@@ -75,4 +75,3 @@
 | 48006 | forbid to clear quota because of reaching the limit | api 禁止清零调用次数，因为清零次数达到上限 |
 
 ## # 7. 适用范围
-

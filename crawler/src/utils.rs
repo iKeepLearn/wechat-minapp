@@ -153,6 +153,10 @@ fn render_list(elem: &ElementRef) -> String {
     out
 }
 
+fn build_table_sep(len: usize) -> String {
+    (0..len).map(|_| "---").collect::<Vec<_>>().join(" | ")
+}
+
 fn render_table(elem: &ElementRef) -> String {
     let mut rows = vec![];
 
@@ -186,7 +190,7 @@ fn render_table(elem: &ElementRef) -> String {
 
     let header = &rows[0];
     out.push_str(&format!("| {} |\n", header.join(" | ")));
-    out.push_str(&format!("|{}|\n", " --- |".repeat(header.len())));
+    out.push_str(&format!("| {} |\n", build_table_sep(header.len())));
 
     for row in &rows[1..] {
         out.push_str(&format!("| {} |\n", row.join(" | ")));

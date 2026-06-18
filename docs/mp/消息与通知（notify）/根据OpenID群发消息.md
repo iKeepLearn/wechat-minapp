@@ -42,13 +42,13 @@
 ### # 查询参数 Query String Parameters
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | access_token | string | 是 | 接口调用凭证，可使用 access_token、authorizer_access_token |
 
 ### # 请求体 Request Payload
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | touser | array | 是 | 填写图文消息的接收者，一串OpenID列表，OpenID最少2个，最多10000个 |
 | msgtype | string | 是 | 群发的消息类型，图文消息为mpnews，文本消息为text，语音为voice，音乐为music，图片为image，视频为video，卡券为wxcard |
 | send_ignore_reprint | number | 否 | 图文消息被判定为转载时，是否继续群发。 1为继续群发（转载），0为停止群发。 该参数默认为0。 |
@@ -65,7 +65,7 @@
 图文消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | media_id | string | 否 | 用于群发的图文消息的media_id |
 
 ### # Body.text Object Payload
@@ -73,7 +73,7 @@
 文本消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | content | string | 否 | 文本内容 |
 
 ### # Body.voice Object Payload
@@ -81,7 +81,7 @@
 语音消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | media_id | string | 否 | 用于群发的图文消息的media_id |
 
 ### # Body.images Object Payload
@@ -89,7 +89,7 @@
 图片消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | media_ids | array | 否 | 用于群发的图文消息的media_id列表 |
 | recommend | string | 否 | 推荐语 |
 | title | string | 否 | 标题 |
@@ -101,7 +101,7 @@
 视频消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | media_id | string | 否 | 用于群发的图文消息的media_id |
 | title | string | 否 | 标题 |
 | description | string | 否 | 描述 |
@@ -111,7 +111,7 @@
 卡券消息
 
 | 参数名 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- ||
+| --- | --- | --- | --- |
 | card_id | string | 否 | 卡券 ID |
 
 ## # 3. 返回参数
@@ -119,7 +119,7 @@
 ### # 返回体 Response Payload
 
 | 参数名 | 类型 | 说明 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | type | string | 媒体文件类型，分别有图片（image）、语音（voice）、视频（video）和缩略图（thumb），次数为news，即图文消息 |
 | errcode | number | 错误码 |
 | errmsg | string | 错误信息 |
@@ -151,7 +151,7 @@
 以下是本接口的错误码列表，其他错误码可参考 [通用错误码](https://developers.weixin.qq.com/doc/oplatform/developers/errCode/) ；调用接口遇到报错，可使用官方提供的 [API 诊断工具](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_errcode)  辅助定位和分析问题。
 
 | 错误码 | 错误描述 | 解决方案 |
-| --- | --- | --- ||
+| --- | --- | --- |
 | 40001 | invalid credential  access_token isinvalid or not latest | access_token 无效或不为最新获取的 access_token，请开发者确认access_token的有效性 |
 | 40007 | invalid media_id | 无效的媒体ID |
 | 40008 | invalid message type | 不合法的消息类型 |
@@ -191,4 +191,3 @@
 ## # 7. 适用范围
 
 本接口支持「服务号（仅认证）」账号类型调用。其他账号类型如无特殊说明，均不可调用。
-
