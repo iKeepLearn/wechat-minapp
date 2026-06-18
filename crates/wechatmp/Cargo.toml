@@ -1,6 +1,6 @@
 [package]
 name = "wechatmp"
-version = "1.0.1"
+version = "1.1.2"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
 description = "微信服务号服务端API SDK"
@@ -15,7 +15,8 @@ wechat-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
+http.workspace = true
 
 [dev-dependencies]
-dotenv = "0.15"
+dotenvy = "0.15.7"
 tokio = { version = "1.0", features = ["full"] }

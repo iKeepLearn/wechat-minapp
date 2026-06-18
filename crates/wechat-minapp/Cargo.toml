@@ -22,5 +22,5 @@ http.workspace = true
 wechat-core.workspace = true
 
 [dev-dependencies]
-dotenv = "0.15"
+dotenvy = "0.15.7"
 tokio = { version = "1.0", features = ["full"] }
