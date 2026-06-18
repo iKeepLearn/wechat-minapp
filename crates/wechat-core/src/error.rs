@@ -3,13 +3,13 @@
 //! 该模块定义了与微信小程序 API 交互过程中可能遇到的所有错误类型，
 //! 包括微信官方错误码映射和第三方库错误转换。
 
-use serde_repr::Deserialize_repr;
 use aes::cipher::InvalidLength as AesInvalidLength;
-use aes::cipher::block_padding::UnpadError;
+use aes::cipher::block_padding::Error as UnpadError;
 use base64::DecodeError as Base64DecodeError;
 use http::Error as HttpError;
 use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeJsonError;
+use serde_repr::Deserialize_repr;
 use strum::Display;
 
 /// 微信小程序 SDK 错误枚举
@@ -122,7 +122,7 @@ pub enum Error {
 
     /// AES 解密时数据填充错误
     #[error("unpad error: {0}")]
-    Unpad(UnpadError),
+    Unpad(#[from] UnpadError),
 
     /// AES 加解密长度错误
     #[error("aes invalid length: {0}")]
@@ -153,11 +153,11 @@ pub enum Error {
     UrlParse(#[from] url::ParseError),
 }
 
-impl From<UnpadError> for Error {
-    fn from(error: UnpadError) -> Self {
-        Error::Unpad(error)
-    }
-}
+// impl From<UnpadError> for Error {
+//     fn from(error: UnpadError) -> Self {
+//         Error::Unpad(error)
+//     }
+// }
 
 /// 微信官方错误码枚举
 #[non_exhaustive]

@@ -1,6 +1,6 @@
 [package]
 name = "wechat-core"
-version = "1.0.2"
+version = "1.0.4"
 edition = "2024"
 authors = ["cc <i@artista.cc>"]
 description = "微信小程序和服务号服务端API SDK - 核心功能"
@@ -11,24 +11,24 @@ categories = ["asynchronous", "web-programming"]
 keywords = ["minapp", "wechat"]
 
 [dependencies]
+http.workspace = true
+url.workspace = true
+serde_repr.workspace = true
+strum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
 tokio = { version = "1.52.3", features = ["sync"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.150"
-thiserror = "2.0.18"
 chrono = { version  = "0.4.45", features = ["serde"] }
-tracing = "0.1.44"
 reqwest = { version = "0.13.4", features = ["json"] }
 async-trait = "0.1.89"
-http = "1.4.2"
-url = "2.5.8"
-serde_repr = "^0.1.19"
-strum = { version = "0.28.0", features = ["derive"] }
-aes = "^0.8.4"
+aes = "0.9.1"
 base64 = "^0.22.1"
-cbc = { version = "^0.1.2", features = ["alloc"] }
+cbc = { version = "0.2.1", features = ["alloc"] }
 hex = "0.4.3"
-hmac = "0.12.1"
-sha2 = "0.10.8"
+hmac = "0.13.0"
+sha2 = "0.11.0"
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["full"] }
