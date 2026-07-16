@@ -1,0 +1,81 @@
+<!-- 来源: https://developers.weixin.qq.com/miniprogram/dev/server/API/mp-message-management/updatable-message/api_createactivityid.html -->
+
+# # 创建activity_id
+
+[调试诊断](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_tools)
+
+> 接口应在服务器端调用，不可在前端（小程序、网页、APP等）直接调用，具体可参考接口调用指南。
+
+接口英文名：createActivityId
+
+该接口用于创建被分享动态消息或私密消息的 activity_id。详见[动态消息](https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/share/updatable-message)
+
+## # 1. 调用方式
+
+### # HTTPS 调用
+
+### # 云调用
+
+- 调用方法：updatableMessage.createActivityId
+- 出入参和 HTTPS 调用相同，调用方式可查看 云调用 说明文档。
+
+### # 第三方调用
+
+- 本接口支持第三方平台代商家调用。
+- 该接口所属的权限集 id 为：18
+- 服务商获得其中之一权限集授权后，可通过使用 authorizer_access_token 代商家进行调用，具体可查看 第三方调用 说明文档。
+
+## # 2. 请求参数
+
+### # 查询参数 Query String Parameters
+
+| 参数名 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| access_token | string | 是 | 接口调用凭证，可使用 access_token、authorizer_access_token |
+| unionid | string | 否 | 为私密消息创建activity_id时，指定分享者为unionid用户。其余用户不能用此activity_id分享私密消息。 openid与unionid填一个即可。私密消息暂不支持云函数生成activity id。 |
+| openid | string | 否 | 为私密消息创建activity_id时，指定分享者为openid用户。其余用户不能用此activity_id分享私密消息。openid与unionid填一个即可。 私密消息暂不支持云函数生成activity id。 |
+
+### # 请求体 Request Payload
+
+无
+
+## # 3. 返回参数
+
+### # 返回体 Response Payload
+
+| 参数名 | 类型 | 说明 |
+| --- | --- | --- |
+| activity_id | string | 动态消息的 ID |
+| expiration_time | number | activity_id 的过期时间戳。默认24小时后过期。 |
+| errcode | number | 错误码 |
+| errmsg | string | 错误信息 |
+
+## # 4. 注意事项
+
+本接口无特殊注意事项
+
+## # 5. 代码示例
+
+### # 5.1 HTTPS调用
+
+请求示例
+
+返回示例
+
+### # 5.2 云调用示例
+
+请求示例
+
+返回示例
+
+## # 6. 错误码
+
+以下是本接口的错误码列表，其他错误码可参考 [通用错误码](https://developers.weixin.qq.com/doc/oplatform/developers/errCode/) ；调用接口遇到报错，可使用官方提供的 [API 诊断工具](https://developers.weixin.qq.com/console/devtools/debug?utm_source=api_errcode)  辅助定位和分析问题。
+
+| 错误码 | 错误描述 | 解决方案 |
+| --- | --- | --- |
+| -1 | system error | 系统繁忙，此时请开发者稍候再试 |
+| 40001 | invalid credential  access_token isinvalid or not latest | 获取 access_token 时 AppSecret 错误，或者 access_token 无效。请开发者认真比对 AppSecret 的正确性，或查看是否正在为恰当的公众号调用接口 |
+
+## # 7. 适用范围
+
